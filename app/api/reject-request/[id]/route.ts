@@ -50,7 +50,7 @@ export async function POST(
         Body: {
           Text: {
             Charset: "UTF-8",
-            Data: "Your access request has been rejected. If you have any questions, please contact the IT department.",
+            Data: "Your access request cannot be granted at this time. If you have any questions or need further assistance, please contact the Infrastructure Department.",
           },
         },
         Subject: {
@@ -58,7 +58,7 @@ export async function POST(
           Data: "Access Request Rejected",
         },
       },
-      Source: "jefferykyeigenesis@gmail.com", // Replace with your verified SES email
+      Source: process.env.SES_SENDER_EMAIL!,
     }
 
     await ses.send(new SendEmailCommand(emailParams))

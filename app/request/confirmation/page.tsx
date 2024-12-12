@@ -16,7 +16,7 @@ interface RequestDetails {
   govAws?: string[];
   graylog?: string[];
   esKibana?: string[];
-  otherAccess?: string[];
+  other?: string[];
   status: string;
   createdAt: string;
 }
@@ -58,14 +58,11 @@ export default function ConfirmationPage() {
     }
 
     fetchRequest()
-
-    // Auto logout after 5 minutes
-    const timer = setTimeout(() => {
-      signOut()
-    }, 5 * 60 * 1000)
-
-    return () => clearTimeout(timer)
   }, [id, toast])
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/signin' })
+  }
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -110,8 +107,9 @@ export default function ConfirmationPage() {
         {renderAccessList("Gov AWS Accounts", request.govAws)}
         {renderAccessList("Graylog Access", request.graylog)}
         {renderAccessList("ES/Kibana Access", request.esKibana)}
-        {renderAccessList("Other Access", request.otherAccess)}
+        {renderAccessList("Other Access", request.other)}
       </div>
+      <Button onClick={handleLogout} className="mt-6">Logout</Button>
     </div>
   )
 }

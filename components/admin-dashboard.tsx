@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { DataTable } from './data-table'
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -29,14 +28,14 @@ interface Request {
   govAws?: string[]
   graylog?: string[]
   esKibana?: string[]
-  otherAccess?: string[]
+  other?: string[]
 }
 
 export function AdminDashboard() {
   const [requests, setRequests] = useState<Request[]>([])
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { data: session } = useSession()
+  // const { data: session } = useSession()
   const { toast } = useToast()
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
@@ -117,48 +116,49 @@ export function AdminDashboard() {
   }
 
   const handleApproveSelected = async (selectedAccess: string[]) => {
-    if (!selectedRequestId || !selectedRequest) return
+  if (!selectedRequestId || !selectedRequest) return;
 
-    try {
-      const payload = {
-        RequestedBy: selectedRequest.email,
-        Name: selectedRequest.fullName,
-        Department: selectedRequest.department,
-        "Job Title": selectedRequest.jobTitle,
-        "Main AWS": selectedAccess.filter(access => selectedRequest.mainAws?.includes(access)),
-        "Gov AWS": selectedAccess.filter(access => selectedRequest.govAws?.includes(access)),
-        Graylog: selectedAccess.filter(access => selectedRequest.graylog?.includes(access)),
-        ES: selectedAccess.filter(access => selectedRequest.esKibana?.includes(access)),
-        Others: selectedAccess.filter(access => selectedRequest.otherAccess?.includes(access)),
-        ApprovedBy: session?.user?.email || "admin@example.com",
-        UpdatedAt: new Date().toISOString()
-      }
+  try {
+    const payload = {
+      RequestedBy: selectedRequest.email,
+      Name: selectedRequest.fullName,
+      Department: selectedRequest.department,
+      "Job Title": selectedRequest.jobTitle,
+      "Main AWS": selectedAccess.filter(access => selectedRequest.mainAws?.includes(access)) || [],
+      "Gov AWS": selectedAccess.filter(access => selectedRequest.govAws?.includes(access)) || [],
+      Graylog: selectedAccess.filter(access => selectedRequest.graylog?.includes(access)) || [],
+      ES: selectedAccess.filter(access => selectedRequest.esKibana?.includes(access)) || [],
+      Others: selectedAccess.filter(access => selectedRequest.other?.includes(access)) || [],
+      ApprovedBy: "admin@example.com",
+      UpdatedAt: new Date().toISOString(),
+    };
 
-      const response = await fetch(`/api/approve-request/${selectedRequestId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-      if (response.ok) {
-        toast({
-          title: "Request approved",
-          description: "The selected access has been granted.",
-        })
-        fetchRequests()
-        setIsApprovalDialogOpen(false)
-      } else {
-        throw new Error('Failed to approve request')
-      }
-    } catch (error) {
+    const response = await fetch(`/api/approve-request/${selectedRequestId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
       toast({
-        title: "Error",
-        description: "Failed to approve request. Please try again.",
-        variant: "destructive",
-      })
+        title: "Request approved",
+        description: "The selected access has been granted.",
+      });
+      fetchRequests();
+      setIsApprovalDialogOpen(false);
+    } else {
+      throw new Error('Failed to approve request');
     }
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to approve request. Please try again.",
+      variant: "destructive",
+    });
   }
+};
 
   const handleViewRequest = (request: Request) => {
     setSelectedRequest(request)
@@ -253,7 +253,7 @@ export function AdminDashboard() {
           ...(request.govAws || []),
           ...(request.graylog || []),
           ...(request.esKibana || []),
-          ...(request.otherAccess || []),
+          ...(request.other || []),
         ])
       }
     }, [request])
@@ -300,7 +300,7 @@ export function AdminDashboard() {
             {renderCheckboxes("Gov AWS Accounts", request.govAws)}
             {renderCheckboxes("Graylog Access", request.graylog)}
             {renderCheckboxes("ES/Kibana Access", request.esKibana)}
-            {renderCheckboxes("Other Access", request.otherAccess)}
+            {renderCheckboxes("Other Access", request.other)}
           </div>
           <DialogFooter>
             <Button onClick={onClose} variant="outline">Cancel</Button>
@@ -351,12 +351,16 @@ export function AdminDashboard() {
             {renderAccessList("Gov AWS Accounts", request.govAws)}
             {renderAccessList("Graylog Access", request.graylog)}
             {renderAccessList("ES/Kibana Access", request.esKibana)}
-            {renderAccessList("Other Access", request.otherAccess)}
+            {renderAccessList("Other Access", request.other)}
           </div>
         </DialogContent>
       </Dialog>
     )
   }
+
+  // const handleLogout = () => {
+  //   signOut({ callbackUrl: '/signin' })
+  // }
 
   const totalRequests = requests.length
   const approvedRequests = requests.filter(r => r.status === 'Approved').length
@@ -369,6 +373,7 @@ export function AdminDashboard() {
 
   return (
     <div>
+      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

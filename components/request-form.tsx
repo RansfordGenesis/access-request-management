@@ -38,7 +38,7 @@ const esKibanaAccess = [
   "Instant Services ES", "Internal Audit OS", "Lend Score OS", "Marketing Portal ES",
   "RIsk Profile OS", "ML ES"
 ]
-const otherAccess = [
+const other = [
   "Metabase", "NITA DB Server", "NITA WEB Server", "New Relic", "Azure DevOps",
   "Coudflare", "Windows JumpBox", "Kannel", "Business Center", "Spacelift",
   "Ghipss Server", "ICC", "Webmin"
@@ -369,7 +369,7 @@ export function RequestForm() {
                 <FormItem>
                   <FormLabel>Other Access Request</FormLabel>
                   <div className="space-y-2">
-                    {otherAccess.map((access) => (
+                    {other.map((access) => (
                       <FormField
                         key={access}
                         control={form.control}
