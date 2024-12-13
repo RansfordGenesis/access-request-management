@@ -10,11 +10,10 @@ export default function ProtectedRoute({ children, adminOnly = false }: { childr
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      const isAdmin = user?.email.endsWith('@admin.com');
-      if (adminOnly && !isAdmin) {
+    if (!isLoading && isAuthenticated && user) {
+      if (adminOnly && user.role !== 'admin') {
         router.push('/request');
-      } else if (!adminOnly && isAdmin) {
+      } else if (!adminOnly && user.role === 'admin') {
         router.push('/admin');
       }
     }
