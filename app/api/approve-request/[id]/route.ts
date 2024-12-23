@@ -10,12 +10,15 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
   },
 }))
 
-export async function POST(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
+type Props = {
+  params: {
+    id: string
+  }
+}
+
+export async function POST(request: NextRequest, props: Props) {
   try {
-    const { id } = context.params
+    const { id } = props.params
     const payload = await request.json()
 
     await dynamodb.update({
