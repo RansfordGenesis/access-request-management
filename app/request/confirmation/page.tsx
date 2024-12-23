@@ -16,7 +16,7 @@ interface RequestDetails {
   govAws?: string[];
   graylog?: string[];
   esKibana?: string[];
-  other?: string[];
+  otherAccess?: string[];
   status: string;
   createdAt: string;
 }
@@ -107,7 +107,7 @@ export default function ConfirmationPage() {
         {renderAccessList("Gov AWS Accounts", request.govAws)}
         {renderAccessList("Graylog Access", request.graylog)}
         {renderAccessList("ES/Kibana Access", request.esKibana)}
-        {renderAccessList("Other Access", request.other)}
+        {renderAccessList("Other Access", request.otherAccess)}
       </div>
       <Button onClick={handleLogout} className="mt-6">Logout</Button>
     </div>

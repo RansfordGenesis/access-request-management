@@ -38,7 +38,7 @@ const esKibanaAccess = [
   "Instant Services ES", "Internal Audit OS", "Lend Score OS", "Marketing Portal ES",
   "RIsk Profile OS", "ML ES"
 ]
-const other = [
+const otherAccess = [
   "Metabase", "NITA DB Server", "NITA WEB Server", "New Relic", "Azure DevOps",
   "Coudflare", "Windows JumpBox", "Kannel", "Business Center", "Spacelift",
   "Ghipss Server", "ICC", "Webmin"
@@ -53,7 +53,7 @@ const formSchema = z.object({
   govAws: z.array(z.string()).optional(),
   graylog: z.array(z.string()).optional(),
   esKibana: z.array(z.string()).optional(),
-  other: z.array(z.string()).optional(),
+  otherAccess: z.array(z.string()).optional(),
 })
 
 export function RequestForm() {
@@ -73,7 +73,7 @@ export function RequestForm() {
       govAws: [],
       graylog: [],
       esKibana: [],
-      other: [],
+      otherAccess: [],
     },
   })
 
@@ -364,16 +364,16 @@ export function RequestForm() {
             )}
             <FormField
               control={form.control}
-              name="other"
+              name="otherAccess"
               render={() => (
                 <FormItem>
                   <FormLabel>Other Access Request</FormLabel>
                   <div className="space-y-2">
-                    {other.map((access) => (
+                    {otherAccess.map((access) => (
                       <FormField
                         key={access}
                         control={form.control}
-                        name="other"
+                        name="otherAccess"
                         render={({ field }) => {
                           return (
                             <FormItem

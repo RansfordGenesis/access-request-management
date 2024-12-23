@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
 import { DataTable } from './data-table'
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -15,6 +16,7 @@ import {
 import { MoreHorizontal } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 
 interface Request {
   id: string
@@ -28,14 +30,14 @@ interface Request {
   govAws?: string[]
   graylog?: string[]
   esKibana?: string[]
-  other?: string[]
+  otherAccess?: string[]
 }
 
 export function AdminDashboard() {
   const [requests, setRequests] = useState<Request[]>([])
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  // const { data: session } = useSession()
+  const { data: session } = useSession()
   const { toast } = useToast()
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
@@ -43,6 +45,7 @@ export function AdminDashboard() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [sortBy, setSortBy] = useState<string>('createdAt')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     fetchRequests()
@@ -57,11 +60,15 @@ export function AdminDashboard() {
     })
 
     const filtered = sorted.filter(request => 
-      filterStatus === 'all' || request.status === filterStatus
+      (filterStatus === 'all' || request.status === filterStatus) &&
+      (searchTerm === '' || 
+       request.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       request.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       request.department.toLowerCase().includes(searchTerm.toLowerCase()))
     )
 
     setFilteredRequests(filtered)
-  }, [requests, sortBy, filterStatus])
+  }, [requests, sortBy, filterStatus, searchTerm])
 
   const fetchRequests = async () => {
     try {
@@ -116,49 +123,48 @@ export function AdminDashboard() {
   }
 
   const handleApproveSelected = async (selectedAccess: string[]) => {
-  if (!selectedRequestId || !selectedRequest) return;
+    if (!selectedRequestId || !selectedRequest) return
 
-  try {
-    const payload = {
-      RequestedBy: selectedRequest.email,
-      Name: selectedRequest.fullName,
-      Department: selectedRequest.department,
-      "Job Title": selectedRequest.jobTitle,
-      "Main AWS": selectedAccess.filter(access => selectedRequest.mainAws?.includes(access)) || [],
-      "Gov AWS": selectedAccess.filter(access => selectedRequest.govAws?.includes(access)) || [],
-      Graylog: selectedAccess.filter(access => selectedRequest.graylog?.includes(access)) || [],
-      ES: selectedAccess.filter(access => selectedRequest.esKibana?.includes(access)) || [],
-      Others: selectedAccess.filter(access => selectedRequest.other?.includes(access)) || [],
-      ApprovedBy: "admin@example.com",
-      UpdatedAt: new Date().toISOString(),
-    };
+    try {
+      const payload = {
+        RequestedBy: selectedRequest.email,
+        Name: selectedRequest.fullName,
+        Department: selectedRequest.department,
+        "Job Title": selectedRequest.jobTitle,
+        "Main AWS": selectedAccess.filter(access => selectedRequest.mainAws?.includes(access)),
+        "Gov AWS": selectedAccess.filter(access => selectedRequest.govAws?.includes(access)),
+        Graylog: selectedAccess.filter(access => selectedRequest.graylog?.includes(access)),
+        ES: selectedAccess.filter(access => selectedRequest.esKibana?.includes(access)),
+        Others: selectedAccess.filter(access => selectedRequest.otherAccess?.includes(access)),
+        ApprovedBy: session?.user?.email || "admin@example.com",
+        UpdatedAt: new Date().toISOString()
+      }
 
-    const response = await fetch(`/api/approve-request/${selectedRequestId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (response.ok) {
+      const response = await fetch(`/api/approve-request/${selectedRequestId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+      if (response.ok) {
+        toast({
+          title: "Request approved",
+          description: "The selected access has been granted.",
+        })
+        fetchRequests()
+        setIsApprovalDialogOpen(false)
+      } else {
+        throw new Error('Failed to approve request')
+      }
+    } catch (error) {
       toast({
-        title: "Request approved",
-        description: "The selected access has been granted.",
-      });
-      fetchRequests();
-      setIsApprovalDialogOpen(false);
-    } else {
-      throw new Error('Failed to approve request');
+        title: "Error",
+        description: "Failed to approve request. Please try again.",
+        variant: "destructive",
+      })
     }
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to approve request. Please try again.",
-      variant: "destructive",
-    });
   }
-};
 
   const handleViewRequest = (request: Request) => {
     setSelectedRequest(request)
@@ -238,6 +244,16 @@ export function AdminDashboard() {
     },
   ]
 
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    const filtered = requests.filter(request => 
+      request.email.toLowerCase().includes(value.toLowerCase()) ||
+      request.fullName.toLowerCase().includes(value.toLowerCase()) ||
+      request.department.toLowerCase().includes(value.toLowerCase())
+    )
+    setFilteredRequests(filtered)
+  }
+
   const ApprovalDialog = ({ isOpen, onClose, onApprove, request }: {
     isOpen: boolean
     onClose: () => void
@@ -253,7 +269,7 @@ export function AdminDashboard() {
           ...(request.govAws || []),
           ...(request.graylog || []),
           ...(request.esKibana || []),
-          ...(request.other || []),
+          ...(request.otherAccess || []),
         ])
       }
     }, [request])
@@ -300,7 +316,7 @@ export function AdminDashboard() {
             {renderCheckboxes("Gov AWS Accounts", request.govAws)}
             {renderCheckboxes("Graylog Access", request.graylog)}
             {renderCheckboxes("ES/Kibana Access", request.esKibana)}
-            {renderCheckboxes("Other Access", request.other)}
+            {renderCheckboxes("Other Access", request.otherAccess)}
           </div>
           <DialogFooter>
             <Button onClick={onClose} variant="outline">Cancel</Button>
@@ -351,21 +367,49 @@ export function AdminDashboard() {
             {renderAccessList("Gov AWS Accounts", request.govAws)}
             {renderAccessList("Graylog Access", request.graylog)}
             {renderAccessList("ES/Kibana Access", request.esKibana)}
-            {renderAccessList("Other Access", request.other)}
+            {renderAccessList("Other Access", request.otherAccess)}
           </div>
         </DialogContent>
       </Dialog>
     )
   }
 
-  // const handleLogout = () => {
-  //   signOut({ callbackUrl: '/signin' })
-  // }
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/signin' })
+  }
 
   const totalRequests = requests.length
   const approvedRequests = requests.filter(r => r.status === 'Approved').length
   const rejectedRequests = requests.filter(r => r.status === 'Rejected').length
   const pendingRequests = requests.filter(r => r.status === 'Pending').length
+
+  const exportAllRequests = async () => {
+    try {
+      const response = await fetch('/api/export-requests', {
+        method: 'GET',
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.style.display = 'none'
+        a.href = url
+        a.download = 'all_requests.csv'
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+      } else {
+        throw new Error('Failed to export requests')
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export requests. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -373,6 +417,11 @@ export function AdminDashboard() {
 
   return (
     <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <Button onClick={handleLogout}>Logout</Button>
+        <Button onClick={exportAllRequests} className="ml-4">Export All Requests</Button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -430,6 +479,12 @@ export function AdminDashboard() {
           </SelectContent>
         </Select>
       </div>
+      <Input
+        placeholder="Search requests"
+        value={searchTerm}
+        onChange={(e) => handleSearch(e.target.value)}
+        className="mb-4"
+      />
       <DataTable columns={columns} data={filteredRequests} />
       <ApprovalDialog
         isOpen={isApprovalDialogOpen}

@@ -24,7 +24,7 @@ export default function LoginPage() {
           )}
           <Button 
             className="w-full" 
-            onClick={login}
+            onClick={() => login().catch(console.error)}
           >
             Sign in with Microsoft
           </Button>

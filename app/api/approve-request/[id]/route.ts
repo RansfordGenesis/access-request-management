@@ -136,7 +136,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       ...(requestItem.Item?.govAws || []),
       ...(requestItem.Item?.graylog || []),
       ...(requestItem.Item?.esKibana || []),
-      ...(requestItem.Item?.other || []),
+      ...(requestItem.Item?.otherAccess || []),
     ]
 
     const deniedAccess = allRequestedAccess.filter(access => !approvedAccess.includes(access))

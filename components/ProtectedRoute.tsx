@@ -2,19 +2,22 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import LoginPage from './LoginPage';
 import { useRouter } from 'next/navigation';
 
 export default function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, checkAuth } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      if (adminOnly && user.role !== 'admin') {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push('/');
+      } else if (adminOnly && user?.role !== 'admin') {
         router.push('/request');
-      } else if (!adminOnly && user.role === 'admin') {
-        router.push('/admin');
       }
     }
   }, [isLoading, isAuthenticated, user, adminOnly, router]);
@@ -27,8 +30,8 @@ export default function ProtectedRoute({ children, adminOnly = false }: { childr
     );
   }
 
-  if (!isAuthenticated) {
-    return <LoginPage />;
+  if (!isAuthenticated || (adminOnly && user?.role !== 'admin')) {
+    return null;
   }
 
   return <>{children}</>;

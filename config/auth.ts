@@ -2,9 +2,8 @@ import { Configuration, LogLevel } from "@azure/msal-browser";
 
 const clientId = process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID;
 const tenantId = process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID;
-const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI;
 
-if (!clientId || !tenantId || !redirectUri) {
+if (!clientId || !tenantId) {
   console.warn(
     "Missing MSAL configuration. Please check your environment variables."
   );
@@ -14,8 +13,8 @@ export const msalConfig: Configuration = {
   auth: {
     clientId: clientId ?? "",
     authority: `https://login.microsoftonline.com/${tenantId}`,
-    redirectUri: redirectUri,
-    postLogoutRedirectUri: "/",
+    redirectUri: typeof window !== 'undefined' ? window.location.origin : undefined,
+    postLogoutRedirectUri: typeof window !== 'undefined' ? window.location.origin : undefined,
   },
   cache: {
     cacheLocation: "sessionStorage",
@@ -47,14 +46,7 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest = {
-  scopes: [
-    "User.Read",
-    "profile",
-    "email",
-    "openid",
-    // Add any additional required scopes here
-  ],
-  prompt: "select_account",
+  scopes: ["User.Read", "profile", "email", "openid"],
 };
 
 export const graphConfig = {

@@ -36,7 +36,7 @@ export function generateRequestEmail(request: any) {
       ${request.govAws ? `<li>Gov AWS: ${request.govAws.join(', ')}</li>` : ''}
       ${request.graylog ? `<li>Graylog: ${request.graylog.join(', ')}</li>` : ''}
       ${request.esKibana ? `<li>ES Kibana: ${request.esKibana.join(', ')}</li>` : ''}
-      ${request.other ? `<li>Other: ${request.other.join(', ')}</li>` : ''}
+      ${request.otherAccess ? `<li>Other: ${request.otherAccess.join(', ')}</li>` : ''}
     </ul>
     <p>Please review this request.</p>
   `
@@ -52,7 +52,7 @@ export function generateUserConfirmationEmail(request: any) {
       ${request.govAws ? `<li>Gov AWS: ${request.govAws.join(', ')}</li>` : ''}
       ${request.graylog ? `<li>Graylog: ${request.graylog.join(', ')}</li>` : ''}
       ${request.esKibana ? `<li>ES Kibana: ${request.esKibana.join(', ')}</li>` : ''}
-      ${request.other ? `<li>Other: ${request.other.join(', ')}</li>` : ''}
+      ${request.otherAccess ? `<li>Other: ${request.otherAccess.join(', ')}</li>` : ''}
     </ul>
     <p>You will be notified once your request has been processed.</p>
     <p>If you have any questions, please contact the Infrastructure department.</p>
