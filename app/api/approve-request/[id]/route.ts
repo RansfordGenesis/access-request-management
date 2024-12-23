@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 
@@ -10,9 +10,12 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
   },
 }))
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
   try {
-    const { id } = params
+    const { id } = context.params
     const payload = await request.json()
 
     await dynamodb.update({
@@ -34,7 +37,6 @@ export async function POST(request: Request, { params }: { params: { id: string 
       },
     })
 
-    // Submit to API Gateway
     const apiGatewayUrl = process.env.API_GATEWAY_URL!
     const apiGatewayResponse = await fetch(apiGatewayUrl, {
       method: 'POST',
@@ -54,4 +56,3 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 })
   }
 }
-
