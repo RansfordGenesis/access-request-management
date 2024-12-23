@@ -109,10 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       if (error instanceof InteractionRequiredAuthError) {
         try {
-          await instance.acquireTokenPopup(loginRequest);
-          await checkAuth();
-        } catch (popupError) {
-          console.error('Error during popup token acquisition:', popupError);
+          await instance.acquireTokenRedirect(loginRequest);
+        } catch (redirectError) {
+          console.error('Error during redirect token acquisition:', redirectError);
           setError("Failed to acquire access token. Please try logging in again.");
           setIsAuthenticated(false);
           setUser(null);
@@ -131,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     try {
       setError(null);
-      await instance.loginPopup(loginRequest);
+      await instance.loginRedirect(loginRequest);
     } catch (error: any) {
       console.error('Login failed:', error);
       setError("Login failed. Please try again.");
@@ -140,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await instance.logoutPopup();
+      await instance.logoutRedirect();
     } catch (error) {
       console.error('Logout failed:', error);
       setError("Logout failed. Please try again.");

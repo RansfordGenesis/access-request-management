@@ -14,7 +14,6 @@ export const msalConfig: Configuration = {
     clientId: clientId ?? "",
     authority: `https://login.microsoftonline.com/${tenantId}`,
     redirectUri: typeof window !== 'undefined' ? window.location.origin : undefined,
-    postLogoutRedirectUri: typeof window !== 'undefined' ? window.location.origin : undefined,
   },
   cache: {
     cacheLocation: "sessionStorage",
@@ -41,6 +40,7 @@ export const msalConfig: Configuration = {
             return;
         }
       },
+      logLevel: LogLevel.Verbose
     },
   },
 };
