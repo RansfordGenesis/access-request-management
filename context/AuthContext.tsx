@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest, graphConfig } from '../config/auth';
 import { InteractionRequiredAuthError, AccountInfo, EventType, EventMessage, AuthenticationResult, InteractionStatus } from '@azure/msal-browser';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -11,7 +12,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   isLoading: boolean;
-  user: { email: string; role: 'admin' | 'user' } | null;
+  user: { email: string; name: string; role: 'admin' | 'user' } | null;
   error: string | null;
 }
 
@@ -21,11 +22,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { instance, accounts, inProgress } = useMsal();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ email: string; role: 'admin' | 'user' } | null>(null);
+  const [user, setUser] = useState<{ email: string; name: string; role: 'admin' | 'user' } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  const determineUserRole = (email: string): 'admin' | 'user' => {
-    return email.endsWith('@admin.com') ? 'admin' : 'user';
+  const determineUserRole = (email: string | null | undefined): 'admin' | 'user' => {
+    if (!email) {
+      console.warn('Email is null or undefined');
+      return 'user';
+    }
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    return (adminEmail && email.toLowerCase() === adminEmail.toLowerCase()) ? 'admin' : 'user';
   };
 
   const fetchUserDetails = async (accessToken: string) => {
@@ -40,10 +47,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await response.json();
-    return data;
+    return {
+      ...data,
+      mail: data.mail || data.userPrincipalName || null,
+      name: data.displayName || data.givenName || 'Unknown User',
+    };
   };
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     if (accounts.length > 0) {
       try {
         await handleAccountSignIn(accounts[0]);
@@ -60,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setIsLoading(false);
     }
-  };
+  }, [accounts]);
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -70,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     handleAuth();
-  }, [accounts, inProgress]);
+  }, [inProgress, checkAuth]);
 
   useEffect(() => {
     const callbackId = instance.addEventCallback((event: EventMessage) => {
@@ -104,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userDetails = await fetchUserDetails(accessToken.accessToken);
       const role = determineUserRole(userDetails.mail);
       setIsAuthenticated(true);
-      setUser({ email: userDetails.mail, role });
+      setUser({ email: userDetails.mail || 'Unknown', name: userDetails.name, role });
       setError(null);
     } catch (error) {
       if (error instanceof InteractionRequiredAuthError) {
@@ -139,13 +150,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await instance.logoutRedirect();
+      await instance.logoutRedirect({
+        postLogoutRedirectUri: window.location.origin,
+      });
     } catch (error) {
       console.error('Logout failed:', error);
       setError("Logout failed. Please try again.");
     } finally {
       setIsAuthenticated(false);
       setUser(null);
+      router.push('/');
     }
   };
 

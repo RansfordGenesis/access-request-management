@@ -15,7 +15,7 @@ export function Header() {
     <header className="container mx-auto py-4 flex justify-between items-center">
       <h1 className="text-2xl font-bold">Access Request Management</h1>
       <div className="flex items-center space-x-4">
-        <span>{user.email}</span>
+        <span>{user.name}</span>
         <Button variant="outline" onClick={logout}>
           Logout
         </Button>
