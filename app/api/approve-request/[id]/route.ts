@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 
+// Initialize DynamoDB client
 const dynamodb = DynamoDBDocument.from(new DynamoDB({
   region: process.env.NEW_AWS_REGION,
   credentials: {
@@ -10,14 +11,25 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
   },
 }));
 
+// Define the expected payload type
+interface ApprovalPayload {
+  "Main AWS"?: string[];
+  "Gov AWS"?: string[];
+  Graylog?: string[];
+  ES?: string[];
+  Others?: string[];
+}
+
+// Route handler with correct Next.js 13+ typing
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
-    const payload = await request.json();
+    const { id } = context.params;
+    const payload = await request.json() as ApprovalPayload;
 
+    // Update DynamoDB
     await dynamodb.update({
       TableName: process.env.DYNAMODB_TABLE_NAME!,
       Key: { id },
@@ -37,7 +49,7 @@ export async function POST(
       },
     });
 
-    // Submit to API Gateway
+    // Submit to API Gateway if URL is configured
     const apiGatewayUrl = process.env.API_GATEWAY_URL;
     if (apiGatewayUrl) {
       const apiGatewayResponse = await fetch(apiGatewayUrl, {
@@ -53,9 +65,15 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 });
+    return NextResponse.json(
+      { message: 'Request approved successfully' },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error approving request:', error);
-    return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to approve request' },
+      { status: 500 }
+    );
   }
 }
