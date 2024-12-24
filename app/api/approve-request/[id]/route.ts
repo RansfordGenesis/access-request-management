@@ -12,10 +12,10 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
 
 export async function POST(
   request: NextRequest,
-  url: URL // Corrected type here
+  { params }: { params: { id: string } }
 ) {
   try {
-    const id = url.pathname.split('/').pop(); // Extract the id from the URL
+    const { id } = params;
     const payload = await request.json();
 
     await dynamodb.update({
