@@ -3,22 +3,19 @@ import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 
 const dynamodb = DynamoDBDocument.from(new DynamoDB({
-  region: process.env.AWS_REGION,
+  region: process.env.NEW_AWS_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.NEW_AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.NEW_AWS_SECRET_ACCESS_KEY!,
   },
 }))
 
-type Props = {
-  params: {
-    id: string
-  }
-}
-
-export async function POST(request: NextRequest, props: Props) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = props.params
+    const { id } = params
     const payload = await request.json()
 
     await dynamodb.update({
@@ -31,26 +28,29 @@ export async function POST(request: NextRequest, props: Props) {
       ExpressionAttributeValues: {
         ':status': 'Approved',
         ':approvedAccess': [
-          ...payload["Main AWS"],
-          ...payload["Gov AWS"],
-          ...payload.Graylog,
-          ...payload.ES,
-          ...payload.Others,
+          ...(payload["Main AWS"] || []),
+          ...(payload["Gov AWS"] || []),
+          ...(payload.Graylog || []),
+          ...(payload.ES || []),
+          ...(payload.Others || []),
         ],
       },
     })
 
-    const apiGatewayUrl = process.env.API_GATEWAY_URL!
-    const apiGatewayResponse = await fetch(apiGatewayUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
+    // Submit to API Gateway
+    const apiGatewayUrl = process.env.API_GATEWAY_URL
+    if (apiGatewayUrl) {
+      const apiGatewayResponse = await fetch(apiGatewayUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
 
-    if (!apiGatewayResponse.ok) {
-      throw new Error('Failed to submit approval to API Gateway')
+      if (!apiGatewayResponse.ok) {
+        throw new Error('Failed to submit approval to API Gateway')
+      }
     }
 
     return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 })
@@ -59,3 +59,4 @@ export async function POST(request: NextRequest, props: Props) {
     return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 })
   }
 }
+
