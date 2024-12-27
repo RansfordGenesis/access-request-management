@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocument, UpdateCommandInput } from "@aws-sdk/lib-dynamodb";
 
 // Initialize DynamoDB client
 const dynamodb = DynamoDBDocument.from(new DynamoDB({
@@ -27,10 +27,17 @@ export async function POST(
 ) {
   try {
     const { id } = context.params;
+    if (!id) {
+      return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 });
+    }
+
     const payload = await request.json() as ApprovalPayload;
+    if (!payload || typeof payload !== 'object') {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
 
     // Update DynamoDB
-    await dynamodb.update({
+    const updateParams: UpdateCommandInput = {
       TableName: process.env.DYNAMODB_TABLE_NAME!,
       Key: { id },
       UpdateExpression: 'SET #status = :status, approvedAccess = :approvedAccess',
@@ -47,7 +54,9 @@ export async function POST(
           ...(payload.Others || []),
         ],
       },
-    });
+    };
+
+    await dynamodb.update(updateParams);
 
     // Submit to API Gateway if URL is configured
     const apiGatewayUrl = process.env.API_GATEWAY_URL;
@@ -61,7 +70,8 @@ export async function POST(
       });
 
       if (!apiGatewayResponse.ok) {
-        throw new Error('Failed to submit approval to API Gateway');
+        const errorText = await apiGatewayResponse.text();
+        throw new Error(`Failed to submit approval to API Gateway: ${errorText}`);
       }
     }
 
@@ -71,8 +81,14 @@ export async function POST(
     );
   } catch (error) {
     console.error('Error approving request:', error);
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Failed to approve request: ${error.message}` },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: 'Failed to approve request' },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     );
   }
