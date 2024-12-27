@@ -26,13 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const determineUserRole = (email: string | null | undefined): 'admin' | 'user' => {
-    if (!email) {
-      console.warn('Email is null or undefined');
-      return 'user';
-    }
+  const determineUserRole = (email: string): 'admin' | 'user' => {
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-    return (adminEmail && email.toLowerCase() === adminEmail.toLowerCase()) ? 'admin' : 'user';
+    return email.toLowerCase() === adminEmail?.toLowerCase() ? 'admin' : 'user';
   };
 
   const fetchUserDetails = async (accessToken: string) => {
@@ -117,6 +113,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
       setUser({ email: userDetails.mail || 'Unknown', name: userDetails.name, role });
       setError(null);
+
+      // Route user based on role
+      if (role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/request');
+      }
     } catch (error) {
       if (error instanceof InteractionRequiredAuthError) {
         try {

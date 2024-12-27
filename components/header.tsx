@@ -16,7 +16,7 @@ export function Header() {
       <h1 className="text-2xl font-bold">Access Request Management</h1>
       <div className="flex items-center space-x-4">
         <span>{user.name}</span>
-        <Button variant="outline" onClick={logout}>
+        <Button variant="outline" onClick={() => logout()}>
           Logout
         </Button>
         <ModeToggle />

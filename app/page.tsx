@@ -18,8 +18,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-      if (adminEmail && user.email.toLowerCase() === adminEmail.toLowerCase()) {
+      if (user.role === 'admin') {
         router.push('/admin');
       } else {
         router.push('/request');
@@ -74,4 +73,3 @@ export default function Home() {
     </div>
   );
 }
-
