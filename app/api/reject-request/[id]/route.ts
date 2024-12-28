@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"
@@ -20,14 +20,14 @@ const ses = new SESClient({
 })
 
 export async function POST(
-  request: Request, 
+  request: NextRequest,
   context: { params: { id: string } }
 ) {
   try {
     const { id } = context.params
 
     const result = await dynamodb.update({
-      TableName: process.env.DYNAMODB_TABLE_NAME!,
+      TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },
       UpdateExpression: 'SET #status = :status',
       ExpressionAttributeNames: {
@@ -42,7 +42,7 @@ export async function POST(
     const updatedRequest = result.Attributes
 
     // Send email to requester
-    const emailParams = {
+    const params = {
       Destination: {
         ToAddresses: [updatedRequest.email],
       },
@@ -50,7 +50,7 @@ export async function POST(
         Body: {
           Text: {
             Charset: "UTF-8",
-            Data: "Your access request cannot be granted at this time. If you have any questions or need further assistance, please contact the Infrastructure Department.",
+            Data: "Your access request has been rejected. If you have any questions, please contact the IT department.",
           },
         },
         Subject: {
@@ -58,10 +58,10 @@ export async function POST(
           Data: "Access Request Rejected",
         },
       },
-      Source: process.env.SES_SENDER_EMAIL!,
+      Source: "noreply@yourdomain.com", // Replace with your verified SES email
     }
 
-    await ses.send(new SendEmailCommand(emailParams))
+    await ses.send(new SendEmailCommand(params))
 
     return NextResponse.json({ message: 'Request rejected successfully' }, { status: 200 })
   } catch (error) {

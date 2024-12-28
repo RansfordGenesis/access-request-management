@@ -12,10 +12,10 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
     const payload = await request.json()
 
     await dynamodb.update({
