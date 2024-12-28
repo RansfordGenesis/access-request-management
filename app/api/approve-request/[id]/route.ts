@@ -11,11 +11,11 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
 }))
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params
+    const { id } = context.params
     const payload = await request.json()
 
     await dynamodb.update({
@@ -59,4 +59,3 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 })
   }
 }
-
