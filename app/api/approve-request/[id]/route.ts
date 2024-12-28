@@ -15,6 +15,11 @@ export async function POST(
 ) {
   try {
     const id = request.nextUrl.pathname.split('/').pop()
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 })
+    }
+
     const payload = await request.json()
 
     await dynamodb.update({

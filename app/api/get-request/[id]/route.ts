@@ -15,6 +15,11 @@ export async function GET(
 ) {
   try {
     const id = request.nextUrl.pathname.split('/').pop()
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 })
+    }
+
     const result = await dynamodb.get({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },

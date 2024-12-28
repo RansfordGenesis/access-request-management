@@ -25,6 +25,10 @@ export async function POST(
   try {
     const id = request.nextUrl.pathname.split('/').pop()
 
+    if (!id) {
+      return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 })
+    }
+
     const result = await dynamodb.update({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },
@@ -39,6 +43,10 @@ export async function POST(
     })
 
     const updatedRequest = result.Attributes
+
+    if (!updatedRequest || !updatedRequest.email) {
+      return NextResponse.json({ error: 'Failed to update request or retrieve email' }, { status: 500 })
+    }
 
     // Send email to requester
     const params = {
