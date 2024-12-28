@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   try {
     const params: any = {
-      TableName: process.env.DYNAMODB_USER_ACCESSES_TABLE_NAME!,
+      TableName: process.env.NEW_DYNAMODB_USER_ACCESSES_TABLE_NAME!,
     }
 
     if (filterExpression) {

@@ -19,7 +19,7 @@ export async function POST(
     const payload = await request.json()
 
     await dynamodb.update({
-      TableName: process.env.DYNAMODB_TABLE_NAME!,
+      TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },
       UpdateExpression: 'SET #status = :status, approvedAccess = :approvedAccess',
       ExpressionAttributeNames: {
@@ -38,7 +38,7 @@ export async function POST(
     })
 
     // Submit to API Gateway
-    const apiGatewayUrl = process.env.API_GATEWAY_URL
+    const apiGatewayUrl = process.env.NEW_API_GATEWAY_URL
     if (apiGatewayUrl) {
       const apiGatewayResponse = await fetch(apiGatewayUrl, {
         method: 'POST',

@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const determineUserRole = (email: string): 'admin' | 'user' => {
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    const adminEmail = process.env.NEXT_PUBLIC_AZURE_AD_ADMIN_EMAIL;
     return email.toLowerCase() === adminEmail?.toLowerCase() ? 'admin' : 'user';
   };
 

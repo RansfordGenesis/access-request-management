@@ -13,7 +13,7 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
 export async function GET() {
   try {
     const result = await dynamodb.scan({
-      TableName: process.env.DYNAMODB_TABLE_NAME!,
+      TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
     })
 
     return NextResponse.json(result.Items, { status: 200 })
