@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 
@@ -10,7 +10,7 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
   },
 }))
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const item = {
@@ -32,4 +32,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to submit request' }, { status: 500 })
   }
 }
-

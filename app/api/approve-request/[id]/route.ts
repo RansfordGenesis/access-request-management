@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 
-// Initialize DynamoDB client
 const dynamodb = DynamoDBDocument.from(new DynamoDB({
   region: process.env.NEW_AWS_REGION,
   credentials: {
@@ -11,18 +10,12 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
   },
 }))
 
-type Props = {
-  params: {
-    id: string
-  }
-}
-
 export async function POST(
   request: NextRequest,
-  context: Props
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const { id } = params
     const payload = await request.json()
 
     await dynamodb.update({

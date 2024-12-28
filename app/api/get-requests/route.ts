@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 
@@ -10,7 +10,7 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
   },
 }))
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const result = await dynamodb.scan({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
@@ -22,4 +22,3 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch requests' }, { status: 500 })
   }
 }
-

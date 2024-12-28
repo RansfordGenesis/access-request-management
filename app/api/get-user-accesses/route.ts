@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 
@@ -10,7 +10,7 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
   },
 }))
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const email = searchParams.get('email')
   const name = searchParams.get('name')
@@ -57,4 +57,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch user accesses' }, { status: 500 })
   }
 }
-
