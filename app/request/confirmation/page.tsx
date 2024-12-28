@@ -27,7 +27,7 @@ export default function ConfirmationPage() {
   const [error, setError] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const id = searchParams.get('id')
+  const id = searchParams?.get('id') ?? null
 
   useEffect(() => {
     const fetchRequest = async () => {
@@ -113,4 +113,3 @@ export default function ConfirmationPage() {
     </div>
   )
 }
-
