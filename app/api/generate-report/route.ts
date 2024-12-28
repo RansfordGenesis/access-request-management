@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createObjectCsvStringifier } from 'csv-writer'
-import { jsPDF } from 'jspdf'
+import jsPDF from 'jspdf'
 import 'jspdf-autotable'
+import { UserAccess } from '@/types/userAccess'
+
+// Extend the jsPDF type to include the autoTable method
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url)
   const format = searchParams.get('format')
-  const data = await request.json()
+  const data: UserAccess[] = await request.json()
 
   const accessCategories = {
     "Main AWS": ["Main_Aws_Ai_labs", "Main_Aws_Core_payment", "Main_Aws_Hubtel", "Main_Aws_Hubtel_developers", "Main_Aws_Vortex"],
@@ -16,8 +24,8 @@ export async function POST(request: Request) {
     "Others": ["others_Azure_devops", "others_Business_center", "others_Cloudflare", "others_Ghipss_server", "others_Icc", "others_Kannel", "others_Metabase", "others_New_relic", "others_Nita_db_server", "others_Nita_web_server", "others_Spacelift", "others_Webmin", "others_Windows_jumpbox"]
   }
 
-  const processedData = data.map((item: any) => {
-    const processedItem: any = {
+  const processedData = data.map((item: UserAccess) => {
+    const processedItem: Record<string, string> = {
       Email: item.Email,
       Name: item.Name,
       Job_Title: item.Job_Title,
@@ -25,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     Object.entries(accessCategories).forEach(([category, accesses]) => {
-      const grantedAccesses = accesses.filter(access => item[access] === "Yes")
+      const grantedAccesses = accesses.filter(access => item[access as keyof UserAccess] === "Yes")
       processedItem[category] = grantedAccesses.length > 0 ? grantedAccesses.join(", ") : "N/A"
     })
 
@@ -85,4 +93,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid format specified' }, { status: 400 })
   }
 }
-
