@@ -21,10 +21,9 @@ const ses = new SESClient({
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const id = request.nextUrl.pathname.split('/').pop()
 
     const result = await dynamodb.update({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,

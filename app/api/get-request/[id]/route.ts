@@ -12,10 +12,9 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB({
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params
+    const id = request.nextUrl.pathname.split('/').pop()
     const result = await dynamodb.get({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },
