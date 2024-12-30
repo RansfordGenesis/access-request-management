@@ -203,12 +203,10 @@ export function RequestForm() {
                                       checked={field.value?.includes(account)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...field.value, account])
+                                          ? field.onChange([...(field.value || []), account]) // Provide an empty array if field.value is undefined
                                           : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== account
-                                              )
-                                            )
+                                              field.value?.filter((value) => value !== account) || [] // Ensure a fallback array
+                                            );
                                       }}
                                     />
                                   </FormControl>
@@ -248,12 +246,10 @@ export function RequestForm() {
                                       checked={field.value?.includes(account)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...field.value, account])
+                                          ? field.onChange([...(field.value || []), account]) // Ensure `field.value` is an array
                                           : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== account
-                                              )
-                                            )
+                                              field.value?.filter((value) => value !== account) || [] // Handle undefined
+                                            );
                                       }}
                                     />
                                   </FormControl>
@@ -290,15 +286,12 @@ export function RequestForm() {
                                 >
                                   <FormControl>
                                     <Checkbox
-                                      checked={field.value?.includes(access)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...field.value, access])
+                                          ? field.onChange([...(field.value || []), access]) // Provide a default empty array if undefined
                                           : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== access
-                                              )
-                                            )
+                                              field.value?.filter((value) => value !== access) || [] // Handle `undefined` gracefully
+                                            );
                                       }}
                                     />
                                   </FormControl>
@@ -338,12 +331,10 @@ export function RequestForm() {
                                       checked={field.value?.includes(access)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...field.value, access])
+                                          ? field.onChange([...(field.value || []), access]) // Provide a default empty array if undefined
                                           : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== access
-                                              )
-                                            )
+                                              field.value?.filter((value) => value !== access) || [] // Handle `undefined` gracefully
+                                            );
                                       }}
                                     />
                                   </FormControl>
@@ -385,12 +376,10 @@ export function RequestForm() {
                                   checked={field.value?.includes(access)}
                                   onCheckedChange={(checked) => {
                                     return checked
-                                      ? field.onChange([...field.value, access])
+                                      ? field.onChange([...(field.value || []), access]) // Provide a default empty array if undefined
                                       : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== access
-                                          )
-                                        )
+                                          field.value?.filter((value) => value !== access) || [] // Handle `undefined` gracefully
+                                        );
                                   }}
                                 />
                               </FormControl>

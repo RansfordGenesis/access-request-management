@@ -56,8 +56,16 @@ export function AdminDashboard() {
       if (sortBy === 'createdAt') {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       }
-      return a[sortBy as keyof Request] > b[sortBy as keyof Request] ? 1 : -1
-    })
+      
+      const aValue = a[sortBy as keyof Request];
+      const bValue = b[sortBy as keyof Request];
+      
+      if (aValue === undefined || bValue === undefined) {
+        return 0; // Handle undefined values by considering them equal
+      }
+
+      return aValue > bValue ? 1 : -1;
+    });
 
     const filtered = sorted.filter(request => 
       (filterStatus === 'all' || request.status === filterStatus) &&
@@ -65,7 +73,7 @@ export function AdminDashboard() {
        request.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
        request.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
        request.department.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+    );
 
     setFilteredRequests(filtered)
   }, [requests, sortBy, filterStatus, searchTerm])
@@ -195,8 +203,8 @@ export function AdminDashboard() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status")
+      cell: ({ row }: { row: any }) => { // Temporary type if exact type is unclear
+        const status = row.getValue("status");
         return (
           <div className={`font-medium ${
             status === 'Approved' ? 'text-green-600' :
@@ -205,20 +213,20 @@ export function AdminDashboard() {
           }`}>
             {status}
           </div>
-        )
+        );
       },
     },
     {
       accessorKey: "createdAt",
       header: "Created At",
-      cell: ({ row }) => {
-        return new Date(row.getValue("createdAt")).toLocaleString()
+      cell: ({ row }: { row: any }) => { // Replace `any` with a specific type if available
+        return new Date(row.getValue("createdAt")).toLocaleString();
       },
     },
     {
       id: "actions",
-      cell: ({ row }) => {
-        const request = row.original
+      cell: ({ row }: { row: any }) => { // Replace `any` with a specific type if available
+        const request = row.original;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -231,17 +239,24 @@ export function AdminDashboard() {
               <DropdownMenuItem onSelect={() => handleViewRequest(request)}>
                 View details
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleApprove(request.id)} disabled={request.status !== 'Pending'}>
+              <DropdownMenuItem
+                onSelect={() => handleApprove(request.id)}
+                disabled={request.status !== 'Pending'}
+              >
                 Approve
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleReject(request.id)} disabled={request.status !== 'Pending'}>
+              <DropdownMenuItem
+                onSelect={() => handleReject(request.id)}
+                disabled={request.status !== 'Pending'}
+              >
                 Reject
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
+        );
       },
-    },
+    }
+    ,
   ]
 
   const handleSearch = (value: string) => {

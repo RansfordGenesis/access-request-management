@@ -17,7 +17,9 @@ interface UserAccess {
   [key: string]: string | string[]
 }
 
-const accessCategories = {
+type AccessCategories = Record<string, string[]>;
+
+const accessCategories: AccessCategories = {
   "Main AWS": ["Main_Aws_Ai_labs", "Main_Aws_Core_payment", "Main_Aws_Hubtel", "Main_Aws_Hubtel_developers", "Main_Aws_Vortex"],
   "Gov AWS": ["Gov_Aws_Backup", "Gov_Aws_Logging", "Gov_Aws_Network", "Gov_Aws_Production"],
   "Graylog": ["Graylog_Fraud_payment", "Graylog_Hubtel_customer_and_merchants", "Graylog_Hubtel_merchants", "Graylog_Hubtel_portals", "Graylog_Hubtel_qc", "Graylog_Hubtel_retailer", "Graylog_Infosec", "Graylog_Instant_services", "Graylog_Messaging_and_ussd", "Graylog_Mobile", "Graylog_Payments"],
@@ -25,28 +27,27 @@ const accessCategories = {
   "Others": ["others_Azure_devops", "others_Business_center", "others_Cloudflare", "others_Ghipss_server", "others_Icc", "others_Kannel", "others_Metabase", "others_New_relic", "others_Nita_db_server", "others_Nita_web_server", "others_Spacelift", "others_Webmin", "others_Windows_jumpbox"]
 }
 
-const renderAccessList = (category: string) => ({ row }: { row: any }) => {
-    const access = row.original;
-  
-    // Get items in the current category that the user has access to
-    const items = accessCategories[category].filter(item => access[item] === "Yes");
-  
-    // Handle empty lists
-    if (items.length === 0) {
-      return <span>N/A</span>;
-    }
-  
-    // Dynamically remove the prefix and clean up the item names
-    return (
-      <ul className="list-disc pl-5">
-        {items.map(item => {
-          // Find the longest common prefix for the category items
-          const prefix = item.split('_', 1)[0] + '_';
-          return <li key={item}>{item.replace(prefix, '').replace('_', ' ')}</li>;
-        })}
-      </ul>
-    );
-  };
+const renderAccessList = (category: keyof AccessCategories) => ({ row }: { row: { original: UserAccess } }) => {
+  const access = row.original;
+
+  // Get items in the current category that the user has access to
+  const items = accessCategories[category].filter((item: string) => access[item] === "Yes");
+
+  // Handle empty lists
+  if (items.length === 0) {
+    return <span>N/A</span>;
+  }
+
+  // Dynamically remove the prefix and clean up the item names
+  return (
+    <ul className="list-disc pl-5">
+      {items.map((item: string) => {
+        const prefix = item.split('_', 1)[0] + '_';
+        return <li key={item}>{item.replace(prefix, '').replace('_', ' ')}</li>;
+      })}
+    </ul>
+  );
+};
 
 const columns: ColumnDef<UserAccess>[] = [
   { accessorKey: "Email", header: "Email" },
@@ -182,5 +183,3 @@ export function UserAccessDashboard() {
     </div>
   )
 }
-
-

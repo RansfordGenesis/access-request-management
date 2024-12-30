@@ -11,14 +11,14 @@ export default function SignIn() {
   const { data: session, status } = useSession()
 
   useEffect(() => {
-    if (status == 'authenticated') {
+    if (status === 'authenticated' && session?.user) {
       if (session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-        router.push('/admin')
+        router.push('/admin');
       } else {
-        router.push('/request')
+        router.push('/request');
       }
     }
-  }, [session, status, router])
+  }, [status, session, router]);
 
   const handleSignIn = () => {
     signIn('azure-ad', { callbackUrl: '/' })
