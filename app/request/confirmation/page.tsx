@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { signOut } from 'next-auth/react'
+import { useAuth } from '@/context/AuthContext'
+import { useRouter } from 'next/navigation'
 
 interface RequestDetails {
   id: string;
@@ -27,7 +28,9 @@ export default function ConfirmationPage() {
   const [error, setError] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const id = searchParams?.get('id') ?? null
+  const { logout } = useAuth()
+  const router = useRouter()
+  const id = searchParams ? searchParams.get('id') : null
 
   useEffect(() => {
     const fetchRequest = async () => {
@@ -61,8 +64,9 @@ export default function ConfirmationPage() {
   }, [id, toast])
 
   const handleLogout = () => {
-    signOut({ callbackUrl: '/signin' })
-  }
+    logout();
+    router.push('/');
+  };
 
   if (isLoading) {
     return <div>Loading...</div>

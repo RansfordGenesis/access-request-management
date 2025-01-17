@@ -3,25 +3,21 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardContent, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 
 export default function Home() {
-  const { isAuthenticated, isLoading, user, login, error, checkAuth } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      if (user.role === 'admin') {
-        router.push('/admin');
+    if (!isLoading) {
+      if (isAuthenticated) {
+        if (user?.role === 'admin') {
+          router.replace('/admin');
+        } else {
+          router.replace('/request');
+        }
       } else {
-        router.push('/request');
+        router.replace('/login');
       }
     }
   }, [isLoading, isAuthenticated, user, router]);
@@ -34,42 +30,6 @@ export default function Home() {
     );
   }
 
-  if (isAuthenticated && user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div>Redirecting...</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-[400px]">
-        <CardHeader>
-          <CardTitle>Access Request Management</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <Button 
-            className="w-full" 
-            onClick={() => login()}
-          >
-            Sign in with Microsoft
-          </Button>
-        </CardContent>
-        <CardFooter className="text-sm text-muted-foreground">
-          {error?.includes("Admin consent") && (
-            <p>
-              Please contact your IT administrator to grant the necessary permissions for this application.
-            </p>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
-  );
+  return null;
 }
+

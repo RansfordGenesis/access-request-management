@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -11,9 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/AuthContext'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle } from 'lucide-react'
 
 const departments = [
-  "Infrastructure",
+  "Infrastructure Department",
   "Engineering",
   "Merchant Relations",
   "Direct-To-Customer",
@@ -40,21 +43,31 @@ const esKibanaAccess = [
 ]
 const otherAccess = [
   "Metabase", "NITA DB Server", "NITA WEB Server", "New Relic", "Azure DevOps",
-  "Coudflare", "Windows JumpBox", "Kannel", "Business Center", "Spacelift",
+  "Cloudflare", "Windows JumpBox", "Kannel", "Business Center", "Spacelift",
   "Ghipss Server", "ICC", "Webmin"
 ]
 
 const formSchema = z.object({
   email: z.string().email(),
   fullName: z.string().min(2).max(50),
-  department: z.string(),
+  department: z.string().min(1, { message: "Department is required" }),
   jobTitle: z.string().min(2).max(50),
   mainAws: z.array(z.string()).optional(),
   govAws: z.array(z.string()).optional(),
   graylog: z.array(z.string()).optional(),
   esKibana: z.array(z.string()).optional(),
   otherAccess: z.array(z.string()).optional(),
-})
+}).refine((data) => {
+  const totalSelected = (data.mainAws?.length || 0) + 
+                        (data.govAws?.length || 0) + 
+                        (data.graylog?.length || 0) + 
+                        (data.esKibana?.length || 0) + 
+                        (data.otherAccess?.length || 0);
+  return totalSelected > 0;
+}, {
+  message: "Please select at least one access request from any section",
+  path: ["mainAws"],
+});
 
 export function RequestForm() {
   const [department, setDepartment] = useState('')
@@ -62,6 +75,8 @@ export function RequestForm() {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
+  const { user } = useAuth()
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -77,6 +92,13 @@ export function RequestForm() {
     },
   })
 
+  useEffect(() => {
+    if (user) {
+      form.setValue('email', user.email)
+      form.setValue('fullName', user.name)
+    }
+  }, [user, form])
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
     setError(null)
@@ -91,6 +113,10 @@ export function RequestForm() {
 
       if (response.ok) {
         const result = await response.json()
+        toast({
+          title: "Request Submitted",
+          description: "Your access request has been submitted successfully. An approval request has been sent to the approver.",
+        })
         router.push(`/request/confirmation?id=${result.id}`)
       } else {
         throw new Error('Failed to submit request')
@@ -107,7 +133,7 @@ export function RequestForm() {
     }
   }
 
-  const showAllSections = department === 'Infrastructure' || department === 'Engineering'
+  const showAllSections = department === 'Infrastructure Department' || department === 'Engineering'
 
   return (
     <Form {...form}>
@@ -119,7 +145,7 @@ export function RequestForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="email@example.com" {...field} />
+                <Input {...field} disabled />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -132,7 +158,7 @@ export function RequestForm() {
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input {...field} disabled />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -147,7 +173,13 @@ export function RequestForm() {
               <Select onValueChange={(value) => {
                 field.onChange(value)
                 setDepartment(value)
-              }}>
+                // Reset access fields when department changes
+                form.setValue('mainAws', [])
+                form.setValue('govAws', [])
+                form.setValue('graylog', [])
+                form.setValue('esKibana', [])
+                form.setValue('otherAccess', [])
+              }} required>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a department" />
@@ -178,7 +210,7 @@ export function RequestForm() {
         />
         {department && (
           <>
-            {(showAllSections || department === 'Infrastructure' || department === 'Engineering') && (
+            {(showAllSections || department === 'Infrastructure Department' || department === 'Engineering') && (
               <>
                 <FormField
                   control={form.control}
@@ -203,10 +235,10 @@ export function RequestForm() {
                                       checked={field.value?.includes(account)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...(field.value || []), account]) // Provide an empty array if field.value is undefined
+                                          ? field.onChange([...(field.value || []), account])
                                           : field.onChange(
-                                              field.value?.filter((value) => value !== account) || [] // Ensure a fallback array
-                                            );
+                                              field.value?.filter((value) => value !== account) || []
+                                            )
                                       }}
                                     />
                                   </FormControl>
@@ -246,10 +278,10 @@ export function RequestForm() {
                                       checked={field.value?.includes(account)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...(field.value || []), account]) // Ensure `field.value` is an array
+                                          ? field.onChange([...(field.value || []), account])
                                           : field.onChange(
-                                              field.value?.filter((value) => value !== account) || [] // Handle undefined
-                                            );
+                                              field.value?.filter((value) => value !== account) || []
+                                            )
                                       }}
                                     />
                                   </FormControl>
@@ -286,12 +318,13 @@ export function RequestForm() {
                                 >
                                   <FormControl>
                                     <Checkbox
+                                      checked={field.value?.includes(access)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...(field.value || []), access]) // Provide a default empty array if undefined
+                                          ? field.onChange([...(field.value || []), access])
                                           : field.onChange(
-                                              field.value?.filter((value) => value !== access) || [] // Handle `undefined` gracefully
-                                            );
+                                              field.value?.filter((value) => value !== access) || []
+                                            )
                                       }}
                                     />
                                   </FormControl>
@@ -331,10 +364,10 @@ export function RequestForm() {
                                       checked={field.value?.includes(access)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...(field.value || []), access]) // Provide a default empty array if undefined
+                                          ? field.onChange([...(field.value || []), access])
                                           : field.onChange(
-                                              field.value?.filter((value) => value !== access) || [] // Handle `undefined` gracefully
-                                            );
+                                              field.value?.filter((value) => value !== access) || []
+                                            )
                                       }}
                                     />
                                   </FormControl>
@@ -376,10 +409,10 @@ export function RequestForm() {
                                   checked={field.value?.includes(access)}
                                   onCheckedChange={(checked) => {
                                     return checked
-                                      ? field.onChange([...(field.value || []), access]) // Provide a default empty array if undefined
+                                      ? field.onChange([...(field.value || []), access])
                                       : field.onChange(
-                                          field.value?.filter((value) => value !== access) || [] // Handle `undefined` gracefully
-                                        );
+                                          field.value?.filter((value) => value !== access) || []
+                                        )
                                   }}
                                 />
                               </FormControl>
@@ -403,9 +436,11 @@ export function RequestForm() {
         </Button>
       </form>
       {error && (
-        <div className="text-red-500 mt-2">{error}</div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
     </Form>
   )
 }
-

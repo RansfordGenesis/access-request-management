@@ -1,12 +1,17 @@
-// next-auth.d.ts
 import NextAuth from "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    userPrincipalName?: string; // Add the custom userPrincipalName property
+  }
+
   interface Session {
-    accessToken?: string; // Add the custom property
+    accessToken?: string;
+    isAdmin?: boolean;
   }
 
   interface JWT {
-    accessToken?: string; // Add the custom property
+    accessToken?: string;
+    isAdmin?: boolean;
   }
 }

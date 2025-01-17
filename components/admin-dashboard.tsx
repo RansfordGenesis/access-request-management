@@ -17,6 +17,16 @@ import { MoreHorizontal } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { Row } from '@tanstack/react-table'
+import { useAuth } from '@/context/AuthContext'
+import { useRouter } from 'next/navigation';
+import { ModeToggle } from '@/components/mode-toggle';
+
+
+const ALL_DEPARTMENTS = "all_departments"
+const ALL_STATUSES = "all"
+
+type SortableField = keyof Pick<Request, 'createdAt' | 'department' | 'status'>;
 
 interface Request {
   id: string
@@ -34,6 +44,17 @@ interface Request {
 }
 
 export function AdminDashboard() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
   const [requests, setRequests] = useState<Request[]>([])
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -44,8 +65,9 @@ export function AdminDashboard() {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [sortBy, setSortBy] = useState<string>('createdAt')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<string>(ALL_STATUSES)
+  const [departmentFilter, setDepartmentFilter] = useState<string>(ALL_DEPARTMENTS)
 
   useEffect(() => {
     fetchRequests()
@@ -56,27 +78,20 @@ export function AdminDashboard() {
       if (sortBy === 'createdAt') {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       }
-      
-      const aValue = a[sortBy as keyof Request];
-      const bValue = b[sortBy as keyof Request];
-      
-      if (aValue === undefined || bValue === undefined) {
-        return 0; // Handle undefined values by considering them equal
-      }
-
-      return aValue > bValue ? 1 : -1;
-    });
+      return (a[sortBy as SortableField] || '') > (b[sortBy as SortableField] || '') ? 1 : -1
+    })
 
     const filtered = sorted.filter(request => 
-      (filterStatus === 'all' || request.status === filterStatus) &&
+      (filterStatus === ALL_STATUSES || request.status === filterStatus) &&
+      (departmentFilter === ALL_DEPARTMENTS || request.department === departmentFilter) &&
       (searchTerm === '' || 
        request.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
        request.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
        request.department.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    )
 
     setFilteredRequests(filtered)
-  }, [requests, sortBy, filterStatus, searchTerm])
+  }, [requests, sortBy, filterStatus, departmentFilter, searchTerm])
 
   const fetchRequests = async () => {
     try {
@@ -203,8 +218,8 @@ export function AdminDashboard() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }: { row: any }) => { // Temporary type if exact type is unclear
-        const status = row.getValue("status");
+      cell: ({ row }: { row: Row<Request> }) => {
+        const status = row.getValue("status") as string
         return (
           <div className={`font-medium ${
             status === 'Approved' ? 'text-green-600' :
@@ -213,20 +228,20 @@ export function AdminDashboard() {
           }`}>
             {status}
           </div>
-        );
+        )
       },
     },
     {
       accessorKey: "createdAt",
       header: "Created At",
-      cell: ({ row }: { row: any }) => { // Replace `any` with a specific type if available
-        return new Date(row.getValue("createdAt")).toLocaleString();
+      cell: ({ row }: { row: Row<Request> }) => {
+        return new Date(row.getValue("createdAt")).toLocaleString()
       },
     },
     {
       id: "actions",
-      cell: ({ row }: { row: any }) => { // Replace `any` with a specific type if available
-        const request = row.original;
+      cell: ({ row }: { row: Row<Request> }) => {
+        const request = row.original
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -239,24 +254,17 @@ export function AdminDashboard() {
               <DropdownMenuItem onSelect={() => handleViewRequest(request)}>
                 View details
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleApprove(request.id)}
-                disabled={request.status !== 'Pending'}
-              >
+              <DropdownMenuItem onSelect={() => handleApprove(request.id)} disabled={request.status !== 'Pending'}>
                 Approve
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleReject(request.id)}
-                disabled={request.status !== 'Pending'}
-              >
+              <DropdownMenuItem onSelect={() => handleReject(request.id)} disabled={request.status !== 'Pending'}>
                 Reject
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        );
+        )
       },
-    }
-    ,
+    },
   ]
 
   const handleSearch = (value: string) => {
@@ -390,8 +398,9 @@ export function AdminDashboard() {
   }
 
   const handleLogout = () => {
-    signOut({ callbackUrl: '/signin' })
-  }
+    logout();
+    router.push('/');
+  };
 
   const totalRequests = requests.length
   const approvedRequests = requests.filter(r => r.status === 'Approved').length
@@ -426,16 +435,20 @@ export function AdminDashboard() {
     }
   }
 
+
   if (isLoading) {
     return <div>Loading...</div>
   }
 
+  // TODO
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <Button onClick={handleLogout}>Logout</Button>
-        <Button onClick={exportAllRequests} className="ml-4">Export All Requests</Button>
+        <div className="flex items-center space-x-4">
+          <Button onClick={() => router.push('/admin/user-access')}>User Access Dashboard</Button>
+          <Button onClick={exportAllRequests}>Export All Requests</Button>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
@@ -487,10 +500,21 @@ export function AdminDashboard() {
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value={ALL_STATUSES}>All</SelectItem>
             <SelectItem value="Pending">Pending</SelectItem>
             <SelectItem value="Approved">Approved</SelectItem>
             <SelectItem value="Rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by department" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_DEPARTMENTS}>All Departments</SelectItem>
+            {Array.from(new Set(requests.map(r => r.department))).map((dept) => (
+              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -515,4 +539,3 @@ export function AdminDashboard() {
     </div>
   )
 }
-

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { ColumnDef } from "@tanstack/react-table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useRouter } from 'next/navigation'
 
 interface UserAccess {
   Email: string
@@ -17,37 +19,30 @@ interface UserAccess {
   [key: string]: string | string[]
 }
 
-type AccessCategories = Record<string, string[]>;
-
-const accessCategories: AccessCategories = {
-  "Main AWS": ["Main_Aws_Ai_labs", "Main_Aws_Core_payment", "Main_Aws_Hubtel", "Main_Aws_Hubtel_developers", "Main_Aws_Vortex"],
-  "Gov AWS": ["Gov_Aws_Backup", "Gov_Aws_Logging", "Gov_Aws_Network", "Gov_Aws_Production"],
-  "Graylog": ["Graylog_Fraud_payment", "Graylog_Hubtel_customer_and_merchants", "Graylog_Hubtel_merchants", "Graylog_Hubtel_portals", "Graylog_Hubtel_qc", "Graylog_Hubtel_retailer", "Graylog_Infosec", "Graylog_Instant_services", "Graylog_Messaging_and_ussd", "Graylog_Mobile", "Graylog_Payments"],
-  "ES/Kibana": ["ES_Ecommerce_search_es", "ES_Elastic_search_stream_es", "ES_Graylog_es", "ES_Health_os", "ES_Hubtel_paylinks_es", "ES_Instant_services_es", "ES_Internal_audit_os", "ES_Lend_score_os", "ES_Marketing_portal_es", "ES_Messaging_es", "ES_Ml_es", "ES_Receive_money_es", "ES_Risk_profile_os", "ES_Send_money_es"],
-  "Others": ["others_Azure_devops", "others_Business_center", "others_Cloudflare", "others_Ghipss_server", "others_Icc", "others_Kannel", "others_Metabase", "others_New_relic", "others_Nita_db_server", "others_Nita_web_server", "others_Spacelift", "others_Webmin", "others_Windows_jumpbox"]
+const accessCategories: Record<string, string[]> = {
+  "Main AWS": ["Ai labs", "Core payment", "Hubtel", "Hubtel developers", "Vortex"],
+  "Gov AWS": ["Backup", "Logging", "Network", "Production"],
+  "Graylog": ["Fraud payment", "Hubtel customer and merchants", "Hubtel merchants", "Hubtel portals", "Hubtel qc", "Hubtel retailer", "Infosec", "Instant services", "Messaging and ussd", "Mobile", "Payments"],
+  "ES/Kibana": ["Ecommerce search", "Elastic search stream", "Graylog", "Health", "Hubtel paylinks", "Instant services", "Internal audit", "Lend score", "Marketing portal", "Messaging", "Ml", "Receive money", "Risk profile", "Send money"],
+  "Others": ["Azure devops", "Business center", "Cloudflare", "Ghipss server", "Icc", "Kannel", "Metabase", "New relic", "Nita db server", "Nita web server", "Spacelift", "Webmin", "Windows jumpbox"]
 }
 
-const renderAccessList = (category: keyof AccessCategories) => ({ row }: { row: { original: UserAccess } }) => {
-  const access = row.original;
+const ALL_DEPARTMENTS = "all_departments"
 
-  // Get items in the current category that the user has access to
-  const items = accessCategories[category].filter((item: string) => access[item] === "Yes");
-
-  // Handle empty lists
+const renderAccessList = (category: keyof typeof accessCategories) => ({ row }: { row: any }) => {
+  const access = row.original
+  const items = accessCategories[category].filter(item => access[item] === "Yes")
   if (items.length === 0) {
-    return <span>N/A</span>;
+    return <span>N/A</span>
   }
-
-  // Dynamically remove the prefix and clean up the item names
   return (
     <ul className="list-disc pl-5">
-      {items.map((item: string) => {
-        const prefix = item.split('_', 1)[0] + '_';
-        return <li key={item}>{item.replace(prefix, '').replace('_', ' ')}</li>;
-      })}
+      {items.map((item: string) => (
+        <li key={item}>{item}</li>
+      ))}
     </ul>
-  );
-};
+  )
+}
 
 const columns: ColumnDef<UserAccess>[] = [
   { accessorKey: "Email", header: "Email" },
@@ -67,16 +62,21 @@ export function UserAccessDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [emailFilter, setEmailFilter] = useState('')
   const [nameFilter, setNameFilter] = useState('')
-  const [departmentFilter, setDepartmentFilter] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState(ALL_DEPARTMENTS)
   const { toast } = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     fetchUserAccesses()
   }, [])
 
   useEffect(() => {
-    filterAccesses()
-  }, [userAccesses, emailFilter, nameFilter, departmentFilter])
+    const interval = setInterval(() => {
+      fetchUserAccesses()
+    }, 30000) // Poll every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchUserAccesses = async () => {
     try {
@@ -84,6 +84,7 @@ export function UserAccessDashboard() {
       if (response.ok) {
         const data = await response.json()
         setUserAccesses(data)
+        setFilteredAccesses(data)
       } else {
         throw new Error('Failed to fetch user accesses')
       }
@@ -106,11 +107,15 @@ export function UserAccessDashboard() {
     if (nameFilter) {
       filtered = filtered.filter(access => access.Name.toLowerCase().includes(nameFilter.toLowerCase()))
     }
-    if (departmentFilter) {
+    if (departmentFilter !== ALL_DEPARTMENTS) {
       filtered = filtered.filter(access => access.Department === departmentFilter)
     }
     setFilteredAccesses(filtered)
   }
+
+  useEffect(() => {
+    filterAccesses()
+  }, [userAccesses, emailFilter, nameFilter, departmentFilter])
 
   const generateReport = async (format: 'csv' | 'pdf') => {
     try {
@@ -143,7 +148,7 @@ export function UserAccessDashboard() {
       })
     }
   }
-  
+
   const departments = Array.from(new Set(userAccesses.map(access => access.Department)))
 
   if (isLoading) {
@@ -151,35 +156,50 @@ export function UserAccessDashboard() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex space-x-4">
-        <Input
-          placeholder="Filter by email"
-          value={emailFilter}
-          onChange={(e) => setEmailFilter(e.target.value)}
-        />
-        <Input
-          placeholder="Filter by name"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-        />
-        <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="Filter by department" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem key="all" value="all">All Departments</SelectItem>
-            {departments.map((dept) => (
-              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex space-x-4">
-        <Button onClick={() => generateReport('csv')}>Download CSV</Button>
-        <Button onClick={() => generateReport('pdf')}>Download PDF</Button>
-      </div>
-      <DataTable columns={columns} data={filteredAccesses} />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              placeholder="Filter by email"
+              value={emailFilter}
+              onChange={(e) => setEmailFilter(e.target.value)}
+            />
+            <Input
+              placeholder="Filter by name"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+            />
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_DEPARTMENTS}>All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex space-x-4">
+            <Button onClick={() => generateReport('csv')}>Download CSV</Button>
+            <Button onClick={() => generateReport('pdf')}>Download PDF</Button>
+            <Button onClick={() => router.push('/admin')}>Back to Admin Dashboard</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>User Access Table</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable columns={columns} data={filteredAccesses} />
+        </CardContent>
+      </Card>
     </div>
   )
 }

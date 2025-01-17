@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { DynamoDB } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
-
-const dynamodb = DynamoDBDocument.from(new DynamoDB({
-  region: process.env.NEW_AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.NEW_AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.NEW_AWS_SECRET_ACCESS_KEY!,
-  },
-}))
+import { dbClient } from '@/lib/db'
+import mg from '@/lib/mailgun'
+import { sendTeamsNotification } from '@/lib/teamsNotification';
+import { AccessRequest } from '@/types';
 
 export async function POST(
   request: NextRequest,
@@ -21,8 +15,10 @@ export async function POST(
     }
 
     const payload = await request.json()
+    const approver = payload.approver;
+    const comments = payload.comments;
 
-    await dynamodb.update({
+    const result = await dbClient.update({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },
       UpdateExpression: 'SET #status = :status, approvedAccess = :approvedAccess',
@@ -39,25 +35,61 @@ export async function POST(
           ...(payload.Others || []),
         ],
       },
+      ReturnValues: 'ALL_NEW',
     })
 
-    // Submit to API Gateway
-    const apiGatewayUrl = process.env.NEW_API_GATEWAY_URL
-    if (apiGatewayUrl) {
-      const apiGatewayResponse = await fetch(apiGatewayUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
+    if (result.Attributes) {
+      const updatedItem = result.Attributes as AccessRequest
 
-      if (!apiGatewayResponse.ok) {
-        throw new Error('Failed to submit approval to API Gateway')
-      }
+      // Log the approval action - REMOVED
+
+      // Send email to user
+      const emailHtml = `
+<h1>Access Request Approved</h1>
+<p>Your access request has been approved:</p>
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Request ID</th>
+    <td style="border: 1px solid #ddd; padding: 8px;">${updatedItem.id}</td>
+  </tr>
+  <tr>
+    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Name</th>
+    <td style="border: 1px solid #ddd; padding: 8px;">${updatedItem.fullName}</td>
+  </tr>
+  <tr>
+    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Approved by</th>
+    <td style="border: 1px solid #ddd; padding: 8px;">${approver}</td>
+  </tr>
+</table>
+<h2>Approved Access:</h2>
+<ul>
+  ${updatedItem.approvedAccess?.map((access: string) => `<li>${access}</li>`).join('')}
+</ul>
+<h2>Not Granted at This Time:</h2>
+<ul>
+  ${[...updatedItem.mainAws || [], ...updatedItem.govAws || [], ...updatedItem.graylog || [], ...updatedItem.esKibana || [], ...updatedItem.otherAccess || []]
+    .filter(access => !updatedItem.approvedAccess?.includes(access))
+    .map(access => `<li>${access}</li>`)
+    .join('')}
+</ul>
+<p>Comments: ${comments || 'No comments provided'}</p>
+<p>If you have any questions, please contact the IT department.</p>
+`;
+      await mg.messages.create(process.env.MAILGUN_DOMAIN!, {
+        from: process.env.MAILGUN_FROM_EMAIL,
+        to: updatedItem.email,
+        subject: `Access Request Approved: ${updatedItem.id}`,
+        html: emailHtml
+      });
+
+      // Send Teams notification
+      await sendTeamsNotification(updatedItem, 'approved', updatedItem.approvedAccess);
+
+      return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 })
+    } else {
+      throw new Error('Failed to update request')
     }
 
-    return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 })
   } catch (error) {
     console.error('Error approving request:', error)
     return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 })

@@ -1,26 +1,29 @@
 'use client';
 
-import { useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { Button } from './ui/button';
 
-export default function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) {
-  const { isAuthenticated, isLoading, user, checkAuth } = useAuth();
+interface ProtectedRouteProps {
+  children: ReactNode;
+  adminOnly?: boolean;
+}
+
+export default function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
 
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        router.push('/');
+        router.replace('/login');
       } else if (adminOnly && user?.role !== 'admin') {
-        router.push('/request');
+        // If trying to access admin routes without admin role, redirect to admin login
+        router.replace('/admin/login');
       }
     }
-  }, [isLoading, isAuthenticated, user, adminOnly, router]);
+  }, [isLoading, isAuthenticated, user, router, adminOnly]);
 
   if (isLoading) {
     return (
@@ -34,6 +37,14 @@ export default function ProtectedRoute({ children, adminOnly = false }: { childr
     return null;
   }
 
-  return <>{children}</>;
+//   TODO: Add adminOnly logic
+  return (
+    <>
+      {children}
+      {adminOnly && (
+        <div>
+        </div>
+      )}
+    </>
+  );
 }
-

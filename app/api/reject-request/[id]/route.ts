@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { DynamoDB } from '@aws-sdk/client-dynamodb'
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"
-
-const dynamodb = DynamoDBDocument.from(new DynamoDB({
-  region: process.env.NEW_AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.NEW_AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.NEW_AWS_SECRET_ACCESS_KEY!,
-  },
-}))
-
-const ses = new SESClient({
-  region: process.env.NEW_AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.NEW_AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.NEW_AWS_SECRET_ACCESS_KEY!,
-  },
-})
+import { dbClient } from '@/lib/db'
+import mg from '@/lib/mailgun'
+import { sendTeamsNotification } from '@/lib/teamsNotification';
+import { AccessRequest } from '@/types'
 
 export async function POST(
   request: NextRequest,
@@ -29,7 +14,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 })
     }
 
-    const result = await dynamodb.update({
+    const result = await dbClient.update({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },
       UpdateExpression: 'SET #status = :status',
@@ -42,33 +27,36 @@ export async function POST(
       ReturnValues: 'ALL_NEW',
     })
 
-    const updatedRequest = result.Attributes
+    const updatedRequest = result.Attributes as AccessRequest
 
     if (!updatedRequest || !updatedRequest.email) {
       return NextResponse.json({ error: 'Failed to update request or retrieve email' }, { status: 500 })
     }
 
     // Send email to requester
-    const params = {
-      Destination: {
-        ToAddresses: [updatedRequest.email],
-      },
-      Message: {
-        Body: {
-          Text: {
-            Charset: "UTF-8",
-            Data: "Your access request has been rejected. If you have any questions, please contact the IT department.",
-          },
-        },
-        Subject: {
-          Charset: "UTF-8",
-          Data: "Access Request Rejected",
-        },
-      },
-      Source: "noreply@yourdomain.com", // Replace with your verified SES email
-    }
+    const emailText = `
+  Your access request has been rejected:
+  Request ID: ${updatedRequest.id}
+  Name: ${updatedRequest.fullName}
+  
+  Requested Access:
+  ${updatedRequest.mainAws ? `Main AWS: ${updatedRequest.mainAws.join(', ')}\n` : ''}
+  ${updatedRequest.govAws ? `Gov AWS: ${updatedRequest.govAws.join(', ')}\n` : ''}
+  ${updatedRequest.graylog ? `Graylog: ${updatedRequest.graylog.join(', ')}\n` : ''}
+  ${updatedRequest.esKibana ? `ES/Kibana: ${updatedRequest.esKibana.join(', ')}\n` : ''}
+  ${updatedRequest.otherAccess ? `Other Access: ${updatedRequest.otherAccess.join(', ')}\n` : ''}
+  
+  If you have any questions, please contact the IT department.
+`;
+    await mg.messages.create(process.env.MAILGUN_DOMAIN!, {
+      from: process.env.MAILGUN_FROM_EMAIL,
+      to: updatedRequest.email,
+      subject: `Access Request Rejected: ${updatedRequest.id}`,
+      text: emailText
+    });
 
-    await ses.send(new SendEmailCommand(params))
+    // Send Teams notification
+    await sendTeamsNotification(updatedRequest, 'rejected');
 
     return NextResponse.json({ message: 'Request rejected successfully' }, { status: 200 })
   } catch (error) {
