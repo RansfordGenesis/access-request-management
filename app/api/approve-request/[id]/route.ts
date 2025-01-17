@@ -81,9 +81,9 @@ export async function POST(
         subject: `Access Request Approved: ${updatedItem.id}`,
         html: emailHtml
       });
-
+//TODO
       // Send Teams notification
-      await sendTeamsNotification(updatedItem, 'approved', updatedItem.approvedAccess);
+      // await sendTeamsNotification(updatedItem, 'approved', updatedItem.approvedAccess);
 
       return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 })
     } else {
