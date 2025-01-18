@@ -35,19 +35,19 @@ export async function POST(
 
     // Send email to requester
     const emailText = `
-  Your access request has been rejected:
-  Request ID: ${updatedRequest.id}
-  Name: ${updatedRequest.fullName}
-  
-  Requested Access:
-  ${updatedRequest.mainAws ? `Main AWS: ${updatedRequest.mainAws.join(', ')}\n` : ''}
-  ${updatedRequest.govAws ? `Gov AWS: ${updatedRequest.govAws.join(', ')}\n` : ''}
-  ${updatedRequest.graylog ? `Graylog: ${updatedRequest.graylog.join(', ')}\n` : ''}
-  ${updatedRequest.esKibana ? `ES/Kibana: ${updatedRequest.esKibana.join(', ')}\n` : ''}
-  ${updatedRequest.otherAccess ? `Other Access: ${updatedRequest.otherAccess.join(', ')}\n` : ''}
-  
-  If you have any questions, please contact the IT department.
-`;
+      Your access request has been rejected:
+      Request ID: ${updatedRequest.id}
+      Name: ${updatedRequest.fullName}
+      
+      Requested Access:
+      ${updatedRequest.mainAws ? `Main AWS: ${updatedRequest.mainAws.join(', ')}\n` : ''}
+      ${updatedRequest.govAws ? `Gov AWS: ${updatedRequest.govAws.join(', ')}\n` : ''}
+      ${updatedRequest.graylog ? `Graylog: ${updatedRequest.graylog.join(', ')}\n` : ''}
+      ${updatedRequest.esKibana ? `ES/Kibana: ${updatedRequest.esKibana.join(', ')}\n` : ''}
+      ${updatedRequest.otherAccess ? `Other Access: ${updatedRequest.otherAccess.join(', ')}\n` : ''}
+      
+      If you have any questions, please contact the IT department.
+    `;
     await mg.messages.create(process.env.MAILGUN_DOMAIN!, {
       from: process.env.MAILGUN_FROM_EMAIL,
       to: updatedRequest.email,

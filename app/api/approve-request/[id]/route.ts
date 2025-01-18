@@ -41,49 +41,47 @@ export async function POST(
     if (result.Attributes) {
       const updatedItem = result.Attributes as AccessRequest
 
-      // Log the approval action - REMOVED
-
       // Send email to user
       const emailHtml = `
-<h1>Access Request Approved</h1>
-<p>Your access request has been approved:</p>
-<table style="border-collapse: collapse; width: 100%;">
-  <tr>
-    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Request ID</th>
-    <td style="border: 1px solid #ddd; padding: 8px;">${updatedItem.id}</td>
-  </tr>
-  <tr>
-    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Name</th>
-    <td style="border: 1px solid #ddd; padding: 8px;">${updatedItem.fullName}</td>
-  </tr>
-  <tr>
-    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Approved by</th>
-    <td style="border: 1px solid #ddd; padding: 8px;">${approver}</td>
-  </tr>
-</table>
-<h2>Approved Access:</h2>
-<ul>
-  ${updatedItem.approvedAccess?.map((access: string) => `<li>${access}</li>`).join('')}
-</ul>
-<h2>Not Granted at This Time:</h2>
-<ul>
-  ${[...updatedItem.mainAws || [], ...updatedItem.govAws || [], ...updatedItem.graylog || [], ...updatedItem.esKibana || [], ...updatedItem.otherAccess || []]
-    .filter(access => !updatedItem.approvedAccess?.includes(access))
-    .map(access => `<li>${access}</li>`)
-    .join('')}
-</ul>
-<p>Comments: ${comments || 'No comments provided'}</p>
-<p>If you have any questions, please contact the IT department.</p>
-`;
+        <h1>Access Request Approved</h1>
+        <p>Your access request has been approved:</p>
+        <table style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Request ID</th>
+            <td style="border: 1px solid #ddd; padding: 8px;">${updatedItem.id}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Name</th>
+            <td style="border: 1px solid #ddd; padding: 8px;">${updatedItem.fullName}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Approved by</th>
+            <td style="border: 1px solid #ddd; padding: 8px;">${approver}</td>
+          </tr>
+        </table>
+        <h2>Approved Access:</h2>
+        <ul>
+          ${updatedItem.approvedAccess?.map((access: string) => `<li>${access}</li>`).join('')}
+        </ul>
+        <h2>Not Granted at This Time:</h2>
+        <ul>
+          ${[...updatedItem.mainAws || [], ...updatedItem.govAws || [], ...updatedItem.graylog || [], ...updatedItem.esKibana || [], ...updatedItem.otherAccess || []]
+            .filter(access => !updatedItem.approvedAccess?.includes(access))
+            .map(access => `<li>${access}</li>`)
+            .join('')}
+        </ul>
+        <p>Comments: ${comments || 'No comments provided'}</p>
+        <p>If you have any questions, please contact the IT department.</p>
+      `;
       await mg.messages.create(process.env.MAILGUN_DOMAIN!, {
         from: process.env.MAILGUN_FROM_EMAIL,
         to: updatedItem.email,
         subject: `Access Request Approved: ${updatedItem.id}`,
         html: emailHtml
       });
-//TODO
+
       // Send Teams notification
-      // await sendTeamsNotification(updatedItem, 'approved', updatedItem.approvedAccess);
+      await sendTeamsNotification(updatedItem, 'approved', updatedItem.approvedAccess);
 
       return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 })
     } else {

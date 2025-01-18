@@ -2,11 +2,16 @@ import { AccessRequest } from '@/types'
 
 const TEAMS_WEBHOOK_URL = process.env.TEAMS_WEBHOOK_URL!;
 
-export async function sendTeamsNotification(request: AccessRequest, action: 'approved' | 'rejected') {
+export async function sendTeamsNotification(request: AccessRequest, action: 'approved' | 'rejected', approvedAccess?: string[]) {
   const title = `Access Request ${action.charAt(0).toUpperCase() + action.slice(1)}`;
   const color = action === 'approved' ? '00ff00' : 'ff0000';
 
-  const accessList = `
+  const accessList = action === 'approved' && approvedAccess
+  ? `
+**Approved Access:**
+${approvedAccess.map(access => `- ${access}`).join('\n')}
+`
+  : `
 **Requested Access:**
 ${request.mainAws?.length ? `- Main AWS: ${request.mainAws.join(', ')}\n` : ''}
 ${request.govAws?.length ? `- Gov AWS: ${request.govAws.join(', ')}\n` : ''}
