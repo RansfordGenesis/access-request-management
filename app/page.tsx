@@ -12,12 +12,16 @@ export default function Home() {
     if (!isLoading) {
       if (isAuthenticated) {
         if (user?.role === 'admin') {
-          router.replace('/admin');
+          router.replace('/admin/panel');
         } else {
           router.replace('/request');
         }
       } else {
-        router.replace('/login');
+        if (user?.role === 'admin') {
+          router.replace('/admin/login');
+        } else {
+          router.replace('/login');
+        }
       }
     }
   }, [isLoading, isAuthenticated, user, router]);
@@ -32,4 +36,3 @@ export default function Home() {
 
   return null;
 }
-

@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     try {
       await adminLogin(email, password);
-      router.push('/admin');
+      router.push('/admin/panel');
     } catch (error) {
       console.error('Admin login failed:', error);
     }

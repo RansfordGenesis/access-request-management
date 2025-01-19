@@ -1,152 +1,141 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
-import { DataTable } from './data-table'
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Row } from '@tanstack/react-table'
-import { useAuth } from '@/context/AuthContext'
+import { useState, useEffect } from 'react';
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock, Database, Server, MoreHorizontal } from 'lucide-react';
+import { format } from 'date-fns';
+import { DataTable } from './data-table';
+import { ColumnDef } from "@tanstack/react-table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { ModeToggle } from '@/components/mode-toggle';
-
-
-const ALL_DEPARTMENTS = "all_departments"
-const ALL_STATUSES = "all"
-
-type SortableField = keyof Pick<Request, 'createdAt' | 'department' | 'status'>;
 
 interface Request {
-  id: string
-  email: string
-  fullName: string
-  department: string
-  jobTitle: string
-  status: 'Pending' | 'Approved' | 'Rejected'
-  createdAt: string
-  mainAws?: string[]
-  govAws?: string[]
-  graylog?: string[]
-  esKibana?: string[]
-  otherAccess?: string[]
+  id: string;
+  email: string;
+  fullName: string;
+  department: string;
+  jobTitle: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  createdAt: string;
+  mainAws?: string[];
+  govAws?: string[];
+  graylog?: string[];
+  esKibana?: string[];
+  otherAccess?: string[];
 }
 
-export function AdminDashboard() {
-  const { user, logout } = useAuth();
+export function AdminDashboard({ initialView = 'pending' }: { initialView?: 'pending' | 'active' }) {
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<keyof Request>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>(initialView === 'active' ? 'Approved' : 'all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const { user } = useAuth();
   const router = useRouter();
-  
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
-
-  const [requests, setRequests] = useState<Request[]>([])
-  const [filteredRequests, setFilteredRequests] = useState<Request[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const { data: session } = useSession()
-  const { toast } = useToast()
-  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null)
-  const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [sortBy, setSortBy] = useState<string>('createdAt')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string>(ALL_STATUSES)
-  const [departmentFilter, setDepartmentFilter] = useState<string>(ALL_DEPARTMENTS)
 
   useEffect(() => {
-    fetchRequests()
-  }, [])
+    fetchRequests();
+  }, []);
 
   useEffect(() => {
     const sorted = [...requests].sort((a, b) => {
       if (sortBy === 'createdAt') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        return sortOrder === 'desc'
+          ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
-      return (a[sortBy as SortableField] || '') > (b[sortBy as SortableField] || '') ? 1 : -1
-    })
+      const aValue = a[sortBy];
+      const bValue = b[sortBy];
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === 'desc'
+          ? bValue.localeCompare(aValue)
+          : aValue.localeCompare(bValue);
+      }
+      return 0;
+    });
 
     const filtered = sorted.filter(request => 
-      (filterStatus === ALL_STATUSES || request.status === filterStatus) &&
-      (departmentFilter === ALL_DEPARTMENTS || request.department === departmentFilter) &&
+      (filterStatus === 'all' || request.status === filterStatus) &&
+      (departmentFilter === 'all' || request.department === departmentFilter) &&
       (searchTerm === '' || 
        request.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
        request.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
        request.department.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+    );
 
-    setFilteredRequests(filtered)
-  }, [requests, sortBy, filterStatus, departmentFilter, searchTerm])
+    setFilteredRequests(filtered);
+  }, [requests, sortBy, sortOrder, filterStatus, departmentFilter, searchTerm]);
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch('/api/get-requests')
+      const response = await fetch('/api/get-requests');
       if (response.ok) {
-        const data = await response.json()
-        setRequests(data)
+        const data = await response.json();
+        setRequests(data);
       } else {
-        throw new Error('Failed to fetch requests')
+        throw new Error('Failed to fetch requests');
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to fetch requests. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleApprove = async (id: string) => {
-    const request = requests.find(r => r.id === id)
+    const request = requests.find(r => r.id === id);
     if (request) {
-      setSelectedRequest(request)
-      setSelectedRequestId(id)
-      setIsApprovalDialogOpen(true)
+      setSelectedRequest(request);
+      setSelectedRequestId(id);
+      setIsApprovalDialogOpen(true);
     }
-  }
+  };
 
   const handleReject = async (id: string) => {
     try {
       const response = await fetch(`/api/reject-request/${id}`, {
         method: 'POST',
-      })
+      });
       if (response.ok) {
         toast({
           title: "Request rejected",
           description: "The request has been rejected and an email has been sent to the requester.",
-        })
-        fetchRequests()
+        });
+        fetchRequests();
       } else {
-        throw new Error('Failed to reject request')
+        throw new Error('Failed to reject request');
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to reject request. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleApproveSelected = async (selectedAccess: string[]) => {
-    if (!selectedRequestId || !selectedRequest) return
+    if (!selectedRequestId || !selectedRequest) return;
 
     try {
       const payload = {
@@ -159,9 +148,9 @@ export function AdminDashboard() {
         Graylog: selectedAccess.filter(access => selectedRequest.graylog?.includes(access)),
         ES: selectedAccess.filter(access => selectedRequest.esKibana?.includes(access)),
         Others: selectedAccess.filter(access => selectedRequest.otherAccess?.includes(access)),
-        ApprovedBy: session?.user?.email || "admin@example.com",
+        ApprovedBy: user?.email || "admin@example.com",
         UpdatedAt: new Date().toISOString()
-      }
+      };
 
       const response = await fetch(`/api/approve-request/${selectedRequestId}`, {
         method: 'POST',
@@ -169,32 +158,32 @@ export function AdminDashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      })
+      });
       if (response.ok) {
         toast({
           title: "Request approved",
           description: "The selected access has been granted.",
-        })
-        fetchRequests()
-        setIsApprovalDialogOpen(false)
+        });
+        fetchRequests();
+        setIsApprovalDialogOpen(false);
       } else {
-        throw new Error('Failed to approve request')
+        throw new Error('Failed to approve request');
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to approve request. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleViewRequest = (request: Request) => {
-    setSelectedRequest(request)
-    setViewDialogOpen(true)
-  }
+    setSelectedRequest(request);
+    setViewDialogOpen(true);
+  };
 
-  const columns = [
+  const columns: ColumnDef<Request>[] = [
     {
       accessorKey: "id",
       header: "Request ID",
@@ -218,30 +207,31 @@ export function AdminDashboard() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }: { row: Row<Request> }) => {
-        const status = row.getValue("status") as string
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
         return (
-          <div className={`font-medium ${
-            status === 'Approved' ? 'text-green-600' :
-            status === 'Rejected' ? 'text-red-600' :
-            'text-yellow-600'
-          }`}>
+          <Badge variant={
+            status === 'Approved' ? 'success' :
+            status === 'Rejected' ? 'destructive' :
+            'warning'
+          }>
             {status}
-          </div>
-        )
+          </Badge>
+        );
       },
     },
     {
       accessorKey: "createdAt",
       header: "Created At",
-      cell: ({ row }: { row: Row<Request> }) => {
-        return new Date(row.getValue("createdAt")).toLocaleString()
+      cell: ({ row }) => {
+        const date = row.getValue("createdAt") as string;
+        return format(new Date(date), 'PPP');
       },
     },
     {
       id: "actions",
-      cell: ({ row }: { row: Row<Request> }) => {
-        const request = row.original
+      cell: ({ row }) => {
+        const request = row.original;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -262,28 +252,18 @@ export function AdminDashboard() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
+        );
       },
     },
-  ]
-
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-    const filtered = requests.filter(request => 
-      request.email.toLowerCase().includes(value.toLowerCase()) ||
-      request.fullName.toLowerCase().includes(value.toLowerCase()) ||
-      request.department.toLowerCase().includes(value.toLowerCase())
-    )
-    setFilteredRequests(filtered)
-  }
+  ];
 
   const ApprovalDialog = ({ isOpen, onClose, onApprove, request }: {
-    isOpen: boolean
-    onClose: () => void
-    onApprove: (selectedAccess: string[]) => void
-    request: Request | null
+    isOpen: boolean;
+    onClose: () => void;
+    onApprove: (selectedAccess: string[]) => void;
+    request: Request | null;
   }) => {
-    const [selectedAccess, setSelectedAccess] = useState<string[]>([])
+    const [selectedAccess, setSelectedAccess] = useState<string[]>([]);
 
     useEffect(() => {
       if (request) {
@@ -293,18 +273,18 @@ export function AdminDashboard() {
           ...(request.graylog || []),
           ...(request.esKibana || []),
           ...(request.otherAccess || []),
-        ])
+        ]);
       }
-    }, [request])
+    }, [request]);
 
-    if (!request) return null
+    if (!request) return null;
 
     const handleApprove = () => {
-      onApprove(selectedAccess)
-    }
+      onApprove(selectedAccess);
+    };
 
     const renderCheckboxes = (title: string, items?: string[]) => {
-      if (!items || items.length === 0) return null
+      if (!items || items.length === 0) return null;
       return (
         <div>
           <h3 className="font-semibold mt-2">{title}</h3>
@@ -317,15 +297,15 @@ export function AdminDashboard() {
                   setSelectedAccess(checked
                     ? [...selectedAccess, item]
                     : selectedAccess.filter((a) => a !== item)
-                  )
+                  );
                 }}
               />
               <label htmlFor={item} className="ml-2">{item}</label>
             </div>
           ))}
         </div>
-      )
-    }
+      );
+    };
 
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -343,22 +323,22 @@ export function AdminDashboard() {
           </div>
           <DialogFooter>
             <Button onClick={onClose} variant="outline">Cancel</Button>
-            <Button onClick={handleApprove}>Approve Selected</Button>
+            <Button onClick={handleApprove} variant="success">Approve Selected</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    )
-  }
+    );
+  };
 
   const ViewRequestDialog = ({ isOpen, onClose, request }: {
-    isOpen: boolean
-    onClose: () => void
-    request: Request | null
+    isOpen: boolean;
+    onClose: () => void;
+    request: Request | null;
   }) => {
-    if (!request) return null
+    if (!request) return null;
 
     const renderAccessList = (title: string, items?: string[]) => {
-      if (!items || items.length === 0) return null
+      if (!items || items.length === 0) return null;
       return (
         <div>
           <strong>{title}:</strong>
@@ -368,8 +348,8 @@ export function AdminDashboard() {
             ))}
           </ul>
         </div>
-      )
-    }
+      );
+    };
 
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -384,7 +364,7 @@ export function AdminDashboard() {
             <p><strong>Department:</strong> {request.department}</p>
             <p><strong>Job Title:</strong> {request.jobTitle}</p>
             <p><strong>Status:</strong> {request.status}</p>
-            <p><strong>Created At:</strong> {new Date(request.createdAt).toLocaleString()}</p>
+            <p><strong>Created At:</strong> {format(new Date(request.createdAt), 'PPP')}</p>
             <h3 className="text-lg font-semibold mt-4 mb-2">Requested Access:</h3>
             {renderAccessList("Main AWS Accounts", request.mainAws)}
             {renderAccessList("Gov AWS Accounts", request.govAws)}
@@ -394,63 +374,58 @@ export function AdminDashboard() {
           </div>
         </DialogContent>
       </Dialog>
-    )
-  }
-
-  const handleLogout = () => {
-    logout();
-    router.push('/');
+    );
   };
 
-  const totalRequests = requests.length
-  const approvedRequests = requests.filter(r => r.status === 'Approved').length
-  const rejectedRequests = requests.filter(r => r.status === 'Rejected').length
-  const pendingRequests = requests.filter(r => r.status === 'Pending').length
+  const totalRequests = requests.length;
+  const approvedRequests = requests.filter(r => r.status === 'Approved').length;
+  const rejectedRequests = requests.filter(r => r.status === 'Rejected').length;
+  const pendingRequests = requests.filter(r => r.status === 'Pending').length;
 
   const exportAllRequests = async () => {
     try {
       const response = await fetch('/api/export-requests', {
         method: 'GET',
-      })
+      });
       
       if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.style.display = 'none'
-        a.href = url
-        a.download = 'all_requests.csv'
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'all_requests.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
       } else {
-        throw new Error('Failed to export requests')
+        throw new Error('Failed to export requests');
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to export requests. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
-
+  };
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
-  // TODO
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex space-x-4">
           <Button onClick={() => router.push('/admin/user-access')}>User Access Dashboard</Button>
           <Button onClick={exportAllRequests}>Export All Requests</Button>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
@@ -484,8 +459,9 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-      <div className="flex justify-between mb-4">
-        <Select value={sortBy} onValueChange={setSortBy}>
+
+      <div className="flex justify-between items-center space-x-4">
+        <Select value={sortBy} onValueChange={(value) => setSortBy(value as keyof Request)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
@@ -495,12 +471,21 @@ export function AdminDashboard() {
             <SelectItem value="status">Status</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort order" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">Ascending</SelectItem>
+            <SelectItem value="desc">Descending</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_STATUSES}>All</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             <SelectItem value="Pending">Pending</SelectItem>
             <SelectItem value="Approved">Approved</SelectItem>
             <SelectItem value="Rejected">Rejected</SelectItem>
@@ -511,31 +496,34 @@ export function AdminDashboard() {
             <SelectValue placeholder="Filter by department" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_DEPARTMENTS}>All Departments</SelectItem>
+            <SelectItem value="all">All Departments</SelectItem>
             {Array.from(new Set(requests.map(r => r.department))).map((dept) => (
               <SelectItem key={dept} value={dept}>{dept}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Input
+          placeholder="Search requests"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
       </div>
-      <Input
-        placeholder="Search requests"
-        value={searchTerm}
-        onChange={(e) => handleSearch(e.target.value)}
-        className="mb-4"
-      />
+
       <DataTable columns={columns} data={filteredRequests} />
+
       <ApprovalDialog
         isOpen={isApprovalDialogOpen}
         onClose={() => setIsApprovalDialogOpen(false)}
         onApprove={handleApproveSelected}
         request={selectedRequest}
       />
+
       <ViewRequestDialog
         isOpen={viewDialogOpen}
         onClose={() => setViewDialogOpen(false)}
         request={selectedRequest}
       />
     </div>
-  )
+  );
 }

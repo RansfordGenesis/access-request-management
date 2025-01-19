@@ -6,40 +6,43 @@ import { AccessRequest } from '@/types';
 
 export async function POST(
   request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const id = request.nextUrl.pathname.split('/').pop()
+    const id = params.id;
     
     if (!id) {
-      return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 });
     }
 
-    const payload = await request.json()
-    const approver = payload.approver;
-    const comments = payload.comments;
+    const payload = await request.json();
+    const approver = payload.ApprovedBy;
+    const approvedAccess = [
+      ...(payload["Main AWS"] || []),
+      ...(payload["Gov AWS"] || []),
+      ...(payload.Graylog || []),
+      ...(payload.ES || []),
+      ...(payload.Others || []),
+    ];
 
     const result = await dbClient.update({
       TableName: process.env.NEW_DYNAMODB_TABLE_NAME!,
       Key: { id },
-      UpdateExpression: 'SET #status = :status, approvedAccess = :approvedAccess',
+      UpdateExpression: 'SET #status = :status, approvedAccess = :approvedAccess, approvedBy = :approvedBy, updatedAt = :updatedAt',
       ExpressionAttributeNames: {
         '#status': 'status',
       },
       ExpressionAttributeValues: {
         ':status': 'Approved',
-        ':approvedAccess': [
-          ...(payload["Main AWS"] || []),
-          ...(payload["Gov AWS"] || []),
-          ...(payload.Graylog || []),
-          ...(payload.ES || []),
-          ...(payload.Others || []),
-        ],
+        ':approvedAccess': approvedAccess,
+        ':approvedBy': approver,
+        ':updatedAt': new Date().toISOString(),
       },
       ReturnValues: 'ALL_NEW',
-    })
+    });
 
     if (result.Attributes) {
-      const updatedItem = result.Attributes as AccessRequest
+      const updatedItem = result.Attributes as AccessRequest;
 
       // Send email to user
       const emailHtml = `
@@ -61,16 +64,8 @@ export async function POST(
         </table>
         <h2>Approved Access:</h2>
         <ul>
-          ${updatedItem.approvedAccess?.map((access: string) => `<li>${access}</li>`).join('')}
+          ${approvedAccess.map((access: string) => `<li>${access}</li>`).join('')}
         </ul>
-        <h2>Not Granted at This Time:</h2>
-        <ul>
-          ${[...updatedItem.mainAws || [], ...updatedItem.govAws || [], ...updatedItem.graylog || [], ...updatedItem.esKibana || [], ...updatedItem.otherAccess || []]
-            .filter(access => !updatedItem.approvedAccess?.includes(access))
-            .map(access => `<li>${access}</li>`)
-            .join('')}
-        </ul>
-        <p>Comments: ${comments || 'No comments provided'}</p>
         <p>If you have any questions, please contact the IT department.</p>
       `;
       await mg.messages.create(process.env.MAILGUN_DOMAIN!, {
@@ -81,15 +76,15 @@ export async function POST(
       });
 
       // Send Teams notification
-      await sendTeamsNotification(updatedItem, 'approved', updatedItem.approvedAccess);
+      await sendTeamsNotification(updatedItem, 'approved', approvedAccess);
 
-      return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 })
+      return NextResponse.json({ message: 'Request approved successfully' }, { status: 200 });
     } else {
-      throw new Error('Failed to update request')
+      throw new Error('Failed to update request');
     }
 
   } catch (error) {
-    console.error('Error approving request:', error)
-    return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 })
+    console.error('Error approving request:', error);
+    return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 });
   }
 }

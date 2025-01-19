@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
+import Link from 'next/link';
 
 export function Header() {
   const { isAuthenticated, logout, user } = useAuth()
@@ -18,6 +19,11 @@ export function Header() {
       <h1 className="text-2xl font-bold">Access Request Management</h1>
       <div className="flex items-center space-x-4">
         <span>{user.name}</span>
+        {user.role === 'admin' && (
+          <Link href="/admin/panel">
+            <Button variant="outline">Admin Panel</Button>
+          </Link>
+        )}
         <Button variant="outline" onClick={() => {
           logout();
           router.push('/');

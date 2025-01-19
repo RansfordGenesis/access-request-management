@@ -1,7 +1,7 @@
 import { Configuration, LogLevel } from "@azure/msal-browser";
 
-const clientId = process.env.AZURE_AD_CLIENT_ID;
-const tenantId = process.env.AZURE_AD_TENANT_ID;
+const clientId = process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID;
+const tenantId = process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID;
 
 if (!clientId || !tenantId) {
   console.warn(
@@ -53,4 +53,3 @@ export const loginRequest = {
 export const graphConfig = {
   graphMeEndpoint: "https://graph.microsoft.com/v1.0/me",
 };
-
