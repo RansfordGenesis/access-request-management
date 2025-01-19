@@ -11,18 +11,12 @@ import { AdminDashboard } from "./admin-dashboard";
 import { UserAccessDashboard } from "./user-access-dashboard";
 import { ModeToggle } from "./mode-toggle";
 
-type View =
-	| "pending"
-	| "active"
-	| "databases"
-	| "servers"
-	| "services"
-	| "user-access";
+type View = "requests" | "databases" | "servers" | "services" | "user-access";
 
 export function AdminPanel() {
 	const { user, logout } = useAuth();
 	const router = useRouter();
-	const [currentView, setCurrentView] = useState<View>("pending");
+	const [currentView, setCurrentView] = useState<View>("requests");
 
 	const handleLogout = () => {
 		logout();
@@ -31,11 +25,13 @@ export function AdminPanel() {
 
 	const renderMainContent = () => {
 		switch (currentView) {
-			case "pending":
-			case "active":
+			case "requests":
 				return <AdminDashboard />;
 			case "user-access":
 				return <UserAccessDashboard />;
+			// case "databases":
+			// case "servers":
+			// case "services":
 			default:
 				return (
 					<Card>
@@ -62,15 +58,16 @@ export function AdminPanel() {
 				<nav className="space-y-6">
 					<div className="space-y-2">
 						<Button
-							variant={currentView === "pending" ? "secondary" : "ghost"}
+							variant={currentView === "requests" ? "secondary" : "ghost"}
 							className={cn(
 								"w-full justify-start",
-								currentView === "pending" && "bg-primary/10 hover:bg-primary/15"
+								currentView === "requests" &&
+									"bg-primary/10 hover:bg-primary/15"
 							)}
-							onClick={() => setCurrentView("pending")}
+							onClick={() => setCurrentView("requests")}
 						>
 							<Clock className="mr-2 h-4 w-4" />
-							Pending Requests
+							Requests
 						</Button>
 						<Button
 							variant={currentView === "user-access" ? "secondary" : "ghost"}
@@ -83,17 +80,6 @@ export function AdminPanel() {
 						>
 							<Shield className="mr-2 h-4 w-4" />
 							User Access
-						</Button>
-						<Button
-							variant={currentView === "active" ? "secondary" : "ghost"}
-							className={cn(
-								"w-full justify-start",
-								currentView === "active" && "bg-primary/10 hover:bg-primary/15"
-							)}
-							onClick={() => setCurrentView("active")}
-						>
-							<Key className="mr-2 h-4 w-4" />
-							Active Grants
 						</Button>
 					</div>
 
