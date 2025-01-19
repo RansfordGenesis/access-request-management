@@ -249,20 +249,16 @@ export function AdminDashboard({
 			accessorKey: "status",
 			header: "Status",
 			cell: ({ row }) => {
-				const status = row.getValue("status") as string;
-				return (
-					<Badge
-						variant={
-							status === "Approved"
-								? "success"
-								: status === "Rejected"
-								? "destructive"
-								: "warning"
-						}
-					>
-						{status}
-					</Badge>
-				);
+				const status = row.getValue("status") as
+					| "Approved"
+					| "Rejected"
+					| "Pending";
+				const statusColors: Record<typeof status, string> = {
+					Approved: "bg-green-100 text-green-800",
+					Rejected: "bg-red-100 text-red-800",
+					Pending: "bg-yellow-100 text-yellow-800",
+				};
+				return <Badge className={statusColors[status]}>{status}</Badge>;
 			},
 		},
 		{
