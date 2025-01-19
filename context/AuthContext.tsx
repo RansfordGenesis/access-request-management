@@ -24,6 +24,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const USER_STORAGE_KEY = "user";
+const ADMIN_STORAGE_KEY = "admin_user";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [user, setUser] = useState<User | null>(null);
@@ -34,6 +37,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		checkAuth();
+		// Check local storage for authentication state
+		const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+		const storedAdmin = localStorage.getItem(ADMIN_STORAGE_KEY);
+		if (storedUser) {
+			setUser(JSON.parse(storedUser));
+			setIsAuthenticated(true);
+		} else if (storedAdmin) {
+			setUser(JSON.parse(storedAdmin));
+			setIsAuthenticated(true);
+		}
 	}, []);
 
 	const checkAuth = async () => {
@@ -67,6 +80,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					name: result.account?.name || "",
 					role: "user",
 				});
+				localStorage.setItem(
+					USER_STORAGE_KEY,
+					JSON.stringify({
+						email: result.account?.username || "",
+						name: result.account?.name || "",
+						role: "user",
+					})
+				);
 				router.push("/request");
 			}
 		} catch (error) {
@@ -84,6 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		) {
 			setIsAuthenticated(true);
 			setUser({ email, name: "Admin", role: "admin" });
+			localStorage.setItem(
+				ADMIN_STORAGE_KEY,
+				JSON.stringify({ email, name: "Admin", role: "admin" })
+			);
 			router.push("/admin/panel");
 		} else {
 			setError("Invalid admin credentials");
@@ -94,12 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		instance.logoutPopup();
 		setIsAuthenticated(false);
 		setUser(null);
+		localStorage.removeItem(USER_STORAGE_KEY);
 		router.push("/");
 	};
 
 	const adminLogout = () => {
 		setIsAuthenticated(false);
 		setUser(null);
+		localStorage.removeItem(ADMIN_STORAGE_KEY);
 		router.push("/admin/login");
 	};
 
