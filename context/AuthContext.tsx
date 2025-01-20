@@ -20,6 +20,7 @@ interface AuthContextType {
 	adminLogout: () => void;
 	isLoading: boolean;
 	error: string | null;
+	clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -136,6 +137,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		localStorage.removeItem(ADMIN_STORAGE_KEY);
 	};
 
+	const clearError = () => {
+		setError(null);
+	};
+
 	return (
 		<AuthContext.Provider
 			value={{
@@ -147,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				adminLogout,
 				isLoading,
 				error,
+				clearError,
 			}}
 		>
 			{children}
