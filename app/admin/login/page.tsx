@@ -12,8 +12,17 @@ import { AlertCircle } from "lucide-react";
 export default function AdminLoginPage() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const { adminLogin, isLoading, error } = useAuth();
+	const { adminLogin, isLoading, error, clearError } = useAuth();
 	const router = useRouter();
+
+	const handleInputChange =
+		(setter: React.Dispatch<React.SetStateAction<string>>) =>
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			setter(e.target.value);
+			if (error) {
+				clearError();
+			}
+		};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -36,14 +45,14 @@ export default function AdminLoginPage() {
 							type="email"
 							placeholder="Admin Email"
 							value={email}
-							onChange={(e) => setEmail(e.target.value)}
+							onChange={handleInputChange(setEmail)}
 							required
 						/>
 						<Input
 							type="password"
 							placeholder="Password"
 							value={password}
-							onChange={(e) => setPassword(e.target.value)}
+							onChange={handleInputChange(setPassword)}
 							required
 						/>
 						{error && (
