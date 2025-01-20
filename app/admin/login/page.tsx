@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminLoginPage() {
 	const [email, setEmail] = useState("");
@@ -65,6 +66,14 @@ export default function AdminLoginPage() {
 							{isLoading ? "Logging in..." : "Admin Login"}
 						</Button>
 					</form>
+					<div className="mt-4 text-center">
+						<Link
+							href="/login"
+							className="text-sm text-blue-500 hover:underline"
+						>
+							Not an Admin? Login as User
+						</Link>
+					</div>
 				</CardContent>
 			</Card>
 		</div>
