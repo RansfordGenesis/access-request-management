@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Shield, Clock, Key, Database, Server, Activity } from "lucide-react";
+import { Shield, Archive, Database, Server, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +66,7 @@ export function AdminPanel() {
 							)}
 							onClick={() => setCurrentView("requests")}
 						>
-							<Clock className="mr-2 h-4 w-4" />
+							<Archive className="mr-2 h-4 w-4" />
 							Requests
 						</Button>
 						<Button
