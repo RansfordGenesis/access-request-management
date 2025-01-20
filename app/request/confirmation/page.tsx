@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { CheckCircle, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface RequestDetails {
 	id: string;
@@ -70,26 +73,43 @@ export default function ConfirmationPage() {
 
 	if (isLoading) {
 		return (
-			<div className="flex justify-center items-center h-full">Loading...</div>
+			<div className="flex flex-col items-center justify-center min-h-screen">
+				<Loader2 className="h-8 w-8 animate-spin text-primary" />
+				<p className="mt-4 text-muted-foreground">Loading request details...</p>
+			</div>
 		);
 	}
 
 	if (error) {
-		return <div className="text-red-500">{error}</div>;
+		return (
+			<div className="flex flex-col items-center justify-center min-h-screen">
+				<div className="text-destructive text-center">
+					<h2 className="text-xl font-semibold mb-2">Error</h2>
+					<p>{error}</p>
+				</div>
+			</div>
+		);
 	}
 
 	if (!request) {
-		return <div>No request found</div>;
+		return (
+			<div className="flex justify-center items-center min-h-screen">
+				<p className="text-muted-foreground">No request found</p>
+			</div>
+		);
 	}
 
 	const renderAccessList = (title: string, items?: string[]) => {
 		if (!items || items.length === 0) return null;
 		return (
-			<div>
-				<strong>{title}:</strong>
-				<ul className="list-disc list-inside">
+			<div className="space-y-2">
+				<h4 className="font-medium text-sm text-muted-foreground">{title}</h4>
+				<ul className="space-y-1">
 					{items.map((item: string) => (
-						<li key={item}>{item}</li>
+						<li key={item} className="flex items-center text-sm">
+							<span className="h-1.5 w-1.5 rounded-full bg-primary mr-2" />
+							{item}
+						</li>
 					))}
 				</ul>
 			</div>
@@ -97,44 +117,89 @@ export default function ConfirmationPage() {
 	};
 
 	return (
-		<div className="container mx-auto py-10">
-			<h1 className="text-2xl font-bold mb-5">
-				Request Submitted Successfully
-			</h1>
-			<div className="bg-secondary p-6 rounded-lg">
-				<h2 className="text-xl font-semibold mb-4">Request Details</h2>
-				<p>
-					<strong>Request ID:</strong> {request.id}
+		<div className="container max-w-3xl mx-auto py-10 px-4">
+			<div className="flex flex-col items-center mb-8">
+				<CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+				<h1 className="text-3xl font-bold text-center">
+					Request Submitted Successfully
+				</h1>
+				<p className="text-muted-foreground mt-2">
+					Your access request has been received and is being processed
 				</p>
-				<p>
-					<strong>Email:</strong> {request.email}
-				</p>
-				<p>
-					<strong>Full Name:</strong> {request.fullName}
-				</p>
-				<p>
-					<strong>Department:</strong> {request.department}
-				</p>
-				<p>
-					<strong>Job Title:</strong> {request.jobTitle}
-				</p>
-				<p>
-					<strong>Status:</strong> {request.status}
-				</p>
-				<p>
-					<strong>Submitted on:</strong>{" "}
-					{new Date(request.createdAt).toLocaleString()}
-				</p>
-				<h3 className="text-lg font-semibold mt-4 mb-2">Requested Access:</h3>
-				{renderAccessList("Main AWS Accounts", request.mainAws)}
-				{renderAccessList("Gov AWS Accounts", request.govAws)}
-				{renderAccessList("Graylog Access", request.graylog)}
-				{renderAccessList("ES/Kibana Access", request.esKibana)}
-				{renderAccessList("Other Access", request.otherAccess)}
 			</div>
-			<Button onClick={handleLogout} className="mt-6">
-				Logout
-			</Button>
+
+			<Card className="mb-6">
+				<CardHeader>
+					<CardTitle>Request Information</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<p className="text-sm text-muted-foreground">Request ID</p>
+							<p className="font-medium">{request.id}</p>
+						</div>
+						<div>
+							<p className="text-sm text-muted-foreground">Status</p>
+							<p className="font-medium capitalize">{request.status}</p>
+						</div>
+						<div>
+							<p className="text-sm text-muted-foreground">Submitted On</p>
+							<p className="font-medium">
+								{new Date(request.createdAt).toLocaleString()}
+							</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card className="mb-6">
+				<CardHeader>
+					<CardTitle>Personal Details</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<p className="text-sm text-muted-foreground">Full Name</p>
+							<p className="font-medium">{request.fullName}</p>
+						</div>
+						<div>
+							<p className="text-sm text-muted-foreground">Email</p>
+							<p className="font-medium">{request.email}</p>
+						</div>
+						<div>
+							<p className="text-sm text-muted-foreground">Department</p>
+							<p className="font-medium">{request.department}</p>
+						</div>
+						<div>
+							<p className="text-sm text-muted-foreground">Job Title</p>
+							<p className="font-medium">{request.jobTitle}</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Requested Access</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-6">
+					{renderAccessList("Main AWS Accounts", request.mainAws)}
+					{request.govAws && <Separator className="my-4" />}
+					{renderAccessList("Gov AWS Accounts", request.govAws)}
+					{request.graylog && <Separator className="my-4" />}
+					{renderAccessList("Graylog Access", request.graylog)}
+					{request.esKibana && <Separator className="my-4" />}
+					{renderAccessList("ES/Kibana Access", request.esKibana)}
+					{request.otherAccess && <Separator className="my-4" />}
+					{renderAccessList("Other Access", request.otherAccess)}
+				</CardContent>
+			</Card>
+
+			<div className="flex justify-center mt-8">
+				<Button onClick={handleLogout} variant="outline" size="lg">
+					Logout
+				</Button>
+			</div>
 		</div>
 	);
 }
