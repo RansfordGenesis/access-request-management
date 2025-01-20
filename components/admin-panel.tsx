@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { Shield, Archive, Database, Server, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,14 +13,8 @@ import { ModeToggle } from "./mode-toggle";
 type View = "requests" | "databases" | "servers" | "services" | "user-access";
 
 export function AdminPanel() {
-	const { user, logout } = useAuth();
-	const router = useRouter();
+	const { user, adminLogout } = useAuth();
 	const [currentView, setCurrentView] = useState<View>("requests");
-
-	const handleLogout = () => {
-		logout();
-		router.push("/admin/login");
-	};
 
 	const renderMainContent = () => {
 		switch (currentView) {
@@ -141,7 +134,7 @@ export function AdminPanel() {
 								{user?.email}
 							</span>
 							<ModeToggle />
-							<Button variant="outline" onClick={handleLogout}>
+							<Button variant="outline" onClick={() => adminLogout()}>
 								Logout
 							</Button>
 						</div>

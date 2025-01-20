@@ -115,19 +115,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	const logout = () => {
-		instance.logoutPopup();
+	const logout = async () => {
+		if (user?.role === "user") {
+			try {
+				await instance.logoutPopup();
+			} catch (error) {
+				console.error("Logout failed", error);
+			}
+		}
+
 		setIsAuthenticated(false);
 		setUser(null);
+
 		localStorage.removeItem(USER_STORAGE_KEY);
-		router.push("/");
 	};
 
 	const adminLogout = () => {
 		setIsAuthenticated(false);
 		setUser(null);
 		localStorage.removeItem(ADMIN_STORAGE_KEY);
-		router.push("/admin/login");
 	};
 
 	return (

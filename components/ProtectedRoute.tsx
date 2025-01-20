@@ -19,7 +19,7 @@ const ProtectedRoute = ({
 	useEffect(() => {
 		if (!isLoading) {
 			if (!isAuthenticated) {
-				router.replace("/login");
+				router.replace(adminOnly ? "/admin/login" : "/login");
 			} else if (adminOnly && user?.role !== "admin") {
 				// If trying to access admin routes without admin role, redirect to admin login
 				router.replace("/admin/login");
