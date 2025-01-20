@@ -465,11 +465,11 @@ export function AdminDashboard({
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="space-y-2">
-									<div className="flex justify-between items-center">
+									<div className="flex flex-col space-y-1">
 										<span className="text-sm text-muted-foreground">
 											Request ID
 										</span>
-										<span className="font-medium">{request.id}</span>
+										<span className="font-medium break-all">{request.id}</span>
 									</div>
 									<Separator />
 									<div className="flex justify-between items-center">
@@ -487,7 +487,7 @@ export function AdminDashboard({
 										</Badge>
 									</div>
 									<Separator />
-									<div className="flex justify-between items-center">
+									<div className="flex flex-col space-y-1">
 										<span className="text-sm text-muted-foreground">
 											Created At
 										</span>
@@ -505,30 +505,38 @@ export function AdminDashboard({
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="space-y-2">
-									<div className="flex justify-between items-center">
+									<div className="flex flex-col space-y-1">
 										<span className="text-sm text-muted-foreground">
 											Full Name
 										</span>
-										<span className="font-medium">{request.fullName}</span>
+										<span className="font-medium break-all">
+											{request.fullName}
+										</span>
 									</div>
 									<Separator />
-									<div className="flex justify-between items-center">
+									<div className="flex flex-col space-y-1">
 										<span className="text-sm text-muted-foreground">Email</span>
-										<span className="font-medium">{request.email}</span>
+										<span className="font-medium break-all">
+											{request.email}
+										</span>
 									</div>
 									<Separator />
-									<div className="flex justify-between items-center">
+									<div className="flex flex-col space-y-1">
 										<span className="text-sm text-muted-foreground">
 											Department
 										</span>
-										<span className="font-medium">{request.department}</span>
+										<span className="font-medium break-all">
+											{request.department}
+										</span>
 									</div>
 									<Separator />
-									<div className="flex justify-between items-center">
+									<div className="flex flex-col space-y-1">
 										<span className="text-sm text-muted-foreground">
 											Job Title
 										</span>
-										<span className="font-medium">{request.jobTitle}</span>
+										<span className="font-medium break-all">
+											{request.jobTitle}
+										</span>
 									</div>
 								</div>
 							</CardContent>
