@@ -8,12 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminLoginPage() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const { adminLogin, isLoading, error } = useAuth();
+	const { adminLogin, isLoading, error, clearError } = useAuth();
 	const router = useRouter();
+
+	const handleInputChange =
+		(setter: React.Dispatch<React.SetStateAction<string>>) =>
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			setter(e.target.value);
+			if (error) {
+				clearError();
+			}
+		};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -36,14 +46,14 @@ export default function AdminLoginPage() {
 							type="email"
 							placeholder="Admin Email"
 							value={email}
-							onChange={(e) => setEmail(e.target.value)}
+							onChange={handleInputChange(setEmail)}
 							required
 						/>
 						<Input
 							type="password"
 							placeholder="Password"
 							value={password}
-							onChange={(e) => setPassword(e.target.value)}
+							onChange={handleInputChange(setPassword)}
 							required
 						/>
 						{error && (
@@ -56,6 +66,14 @@ export default function AdminLoginPage() {
 							{isLoading ? "Logging in..." : "Admin Login"}
 						</Button>
 					</form>
+					<div className="mt-4 text-center">
+						<Link
+							href="/login"
+							className="text-sm text-blue-500 hover:underline"
+						>
+							Not an Admin? Login as User
+						</Link>
+					</div>
 				</CardContent>
 			</Card>
 		</div>
