@@ -100,7 +100,7 @@ export default function ConfirmationPage() {
 	}
 
 	const renderAccessList = (title: string, items?: string[]) => {
-		if (!items || items.length === 0) return null;
+		if (!items?.length) return null;
 		return (
 			<div className="space-y-2">
 				<h4 className="font-medium text-sm text-muted-foreground">{title}</h4>
@@ -114,6 +114,25 @@ export default function ConfirmationPage() {
 				</ul>
 			</div>
 		);
+	};
+
+	const renderAccessSection = () => {
+		const sections = [
+			{ title: "Main AWS Accounts", data: request?.mainAws },
+			{ title: "Gov AWS Accounts", data: request?.govAws },
+			{ title: "Graylog Access", data: request?.graylog },
+			{ title: "ES/Kibana Access", data: request?.esKibana },
+			{ title: "Other Access", data: request?.otherAccess },
+		];
+
+		return sections
+			.filter((section) => section.data?.length)
+			.map((section, index, array) => (
+				<div key={section.title}>
+					{renderAccessList(section.title, section.data)}
+					{index < array.length - 1 && <Separator className="my-4" />}
+				</div>
+			));
 	};
 
 	return (
@@ -182,17 +201,7 @@ export default function ConfirmationPage() {
 				<CardHeader>
 					<CardTitle>Requested Access</CardTitle>
 				</CardHeader>
-				<CardContent className="space-y-6">
-					{renderAccessList("Main AWS Accounts", request.mainAws)}
-					{request.govAws && <Separator className="my-4" />}
-					{renderAccessList("Gov AWS Accounts", request.govAws)}
-					{request.graylog && <Separator className="my-4" />}
-					{renderAccessList("Graylog Access", request.graylog)}
-					{request.esKibana && <Separator className="my-4" />}
-					{renderAccessList("ES/Kibana Access", request.esKibana)}
-					{request.otherAccess && <Separator className="my-4" />}
-					{renderAccessList("Other Access", request.otherAccess)}
-				</CardContent>
+				<CardContent className="space-y-6">{renderAccessSection()}</CardContent>
 			</Card>
 
 			<div className="flex justify-center mt-8">
