@@ -47,6 +47,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface Request {
 	id: string;
@@ -417,55 +419,133 @@ export function AdminDashboard({
 		const renderAccessList = (title: string, items?: string[]) => {
 			if (!items || items.length === 0) return null;
 			return (
-				<div>
-					<strong>{title}:</strong>
-					<ul className="list-disc list-inside">
+				<div className="space-y-2">
+					<h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
+					<div className="grid grid-cols-1 gap-1.5">
 						{items.map((item) => (
-							<li key={item}>{item}</li>
+							<div
+								key={item}
+								className="flex items-center text-sm bg-muted/50 p-2 rounded-md"
+							>
+								<span className="h-1.5 w-1.5 rounded-full bg-primary mr-2" />
+								{item}
+							</div>
 						))}
-					</ul>
+					</div>
 				</div>
 			);
 		};
 
+		const statusColors = {
+			Approved: "bg-green-100 text-green-800",
+			Rejected: "bg-red-100 text-red-800",
+			Pending: "bg-yellow-100 text-yellow-800",
+		};
+
 		return (
 			<Dialog open={isOpen} onOpenChange={onClose}>
-				<DialogContent className="max-w-md">
+				<DialogContent className="max-w-2xl">
 					<DialogHeader>
-						<DialogTitle>Request Details</DialogTitle>
+						<DialogTitle className="text-xl">Request Details</DialogTitle>
 					</DialogHeader>
-					<div className="space-y-2">
-						<p>
-							<strong>ID:</strong> {request.id}
-						</p>
-						<p>
-							<strong>Email:</strong> {request.email}
-						</p>
-						<p>
-							<strong>Full Name:</strong> {request.fullName}
-						</p>
-						<p>
-							<strong>Department:</strong> {request.department}
-						</p>
-						<p>
-							<strong>Job Title:</strong> {request.jobTitle}
-						</p>
-						<p>
-							<strong>Status:</strong> {request.status}
-						</p>
-						<p>
-							<strong>Created At:</strong>{" "}
-							{format(new Date(request.createdAt), "PPP")}
-						</p>
-						<h3 className="text-lg font-semibold mt-4 mb-2">
-							Requested Access:
-						</h3>
-						{renderAccessList("Main AWS Accounts", request.mainAws)}
-						{renderAccessList("Gov AWS Accounts", request.govAws)}
-						{renderAccessList("Graylog Access", request.graylog)}
-						{renderAccessList("ES/Kibana Access", request.esKibana)}
-						{renderAccessList("Other Access", request.otherAccess)}
+
+					<div className="grid grid-cols-2 gap-6">
+						<Card>
+							<CardHeader>
+								<CardTitle className="text-base">Basic Information</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-4">
+								<div className="space-y-2">
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Request ID
+										</span>
+										<span className="font-medium">{request.id}</span>
+									</div>
+									<Separator />
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Status
+										</span>
+										<Badge
+											className={
+												statusColors[
+													request.status as keyof typeof statusColors
+												]
+											}
+										>
+											{request.status}
+										</Badge>
+									</div>
+									<Separator />
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Created At
+										</span>
+										<span className="font-medium">
+											{format(new Date(request.createdAt), "PPP")}
+										</span>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader>
+								<CardTitle className="text-base">User Information</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-4">
+								<div className="space-y-2">
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Full Name
+										</span>
+										<span className="font-medium">{request.fullName}</span>
+									</div>
+									<Separator />
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">Email</span>
+										<span className="font-medium">{request.email}</span>
+									</div>
+									<Separator />
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Department
+										</span>
+										<span className="font-medium">{request.department}</span>
+									</div>
+									<Separator />
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-muted-foreground">
+											Job Title
+										</span>
+										<span className="font-medium">{request.jobTitle}</span>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
 					</div>
+
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base">Requested Access</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<ScrollArea className="h-[200px] pr-4">
+								<div className="space-y-6">
+									{renderAccessList("Main AWS Accounts", request.mainAws)}
+									{request.govAws && <Separator className="my-4" />}
+									{renderAccessList("Gov AWS Accounts", request.govAws)}
+									{request.graylog && <Separator className="my-4" />}
+									{renderAccessList("Graylog Access", request.graylog)}
+									{request.esKibana && <Separator className="my-4" />}
+									{renderAccessList("ES/Kibana Access", request.esKibana)}
+									{request.otherAccess && <Separator className="my-4" />}
+									{renderAccessList("Other Access", request.otherAccess)}
+								</div>
+							</ScrollArea>
+						</CardContent>
+					</Card>
 				</DialogContent>
 			</Dialog>
 		);
