@@ -5,7 +5,19 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, Database, Server, MoreHorizontal } from "lucide-react";
+import {
+	CheckCircle,
+	XCircle,
+	Clock,
+	Database,
+	Filter,
+	Download,
+	Search,
+	Server,
+	ChevronUp,
+	ChevronDown,
+	MoreHorizontal,
+} from "lucide-react";
 import { format } from "date-fns";
 import { DataTable } from "./data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -33,6 +45,8 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Request {
 	id: string;
@@ -495,125 +509,193 @@ export function AdminDashboard({
 		}
 	};
 
+	const StatsCard = ({ title, value, icon, description, trend }: any) => (
+		<Card>
+			<CardHeader className="flex flex-row items-center justify-between pb-2">
+				<CardTitle className="text-sm font-medium text-muted-foreground">
+					{title}
+				</CardTitle>
+				{icon}
+			</CardHeader>
+			<CardContent>
+				<div className="flex items-center justify-between">
+					<div className="text-2xl font-bold">{value}</div>
+					{trend && (
+						<div className={`flex items-center text-sm ${trend.color}`}>
+							{trend.value >= 0 ? (
+								<ChevronUp className="h-4 w-4" />
+							) : (
+								<ChevronDown className="h-4 w-4" />
+							)}
+							{Math.abs(trend.value)}%
+						</div>
+					)}
+				</div>
+				{description && (
+					<p className="text-xs text-muted-foreground mt-1">{description}</p>
+				)}
+			</CardContent>
+		</Card>
+	);
+
 	if (isLoading) {
 		return (
-			<div className="flex justify-center items-center h-full">Loading...</div>
+			<div className="space-y-6">
+				<div className="flex justify-between items-center">
+					<Skeleton className="h-8 w-[200px]" />
+					<Skeleton className="h-10 w-[150px]" />
+				</div>
+				<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+					{[1, 2, 3, 4].map((i) => (
+						<Card key={i}>
+							<CardHeader>
+								<Skeleton className="h-4 w-[100px]" />
+							</CardHeader>
+							<CardContent>
+								<Skeleton className="h-8 w-[60px]" />
+							</CardContent>
+						</Card>
+					))}
+				</div>
+				<Card>
+					<CardHeader>
+						<Skeleton className="h-4 w-[150px]" />
+					</CardHeader>
+					<CardContent>
+						<Skeleton className="h-[400px] w-full" />
+					</CardContent>
+				</Card>
+			</div>
 		);
 	}
 
 	return (
 		<div className="space-y-6">
 			<div className="flex justify-between items-center">
-				<h1 className="text-2xl font-bold">Admin Dashboard</h1>
-				<div className="flex space-x-4">
-					<Button onClick={exportAllRequests}>Export All Requests</Button>
+				<div>
+					<h1 className="text-3xl font-bold">Access Requests</h1>
+					<p className="text-muted-foreground mt-1">
+						Manage and monitor access requests across all systems
+					</p>
 				</div>
+				<Button onClick={exportAllRequests} className="flex items-center">
+					<Download className="mr-2 h-4 w-4" />
+					Export Requests
+				</Button>
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">
-							Total Requests
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">{totalRequests}</div>
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">
-							Approved Requests
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">{approvedRequests}</div>
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">
-							Rejected Requests
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">{rejectedRequests}</div>
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">
-							Pending Requests
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">{pendingRequests}</div>
-					</CardContent>
-				</Card>
-			</div>
-
-			<div className="flex justify-between items-center space-x-4">
-				<Select
-					value={sortBy}
-					onValueChange={(value) => setSortBy(value as keyof Request)}
-				>
-					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder="Sort by" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="createdAt">Date</SelectItem>
-						<SelectItem value="department">Department</SelectItem>
-						<SelectItem value="status">Status</SelectItem>
-					</SelectContent>
-				</Select>
-				<Select
-					value={sortOrder}
-					onValueChange={(value) => setSortOrder(value as "asc" | "desc")}
-				>
-					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder="Sort order" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="asc">Ascending</SelectItem>
-						<SelectItem value="desc">Descending</SelectItem>
-					</SelectContent>
-				</Select>
-				<Select value={filterStatus} onValueChange={setFilterStatus}>
-					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder="Filter by status" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All</SelectItem>
-						<SelectItem value="Pending">Pending</SelectItem>
-						<SelectItem value="Approved">Approved</SelectItem>
-						<SelectItem value="Rejected">Rejected</SelectItem>
-					</SelectContent>
-				</Select>
-				<Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder="Filter by department" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All Departments</SelectItem>
-						{Array.from(new Set(requests.map((r) => r.department))).map(
-							(dept) => (
-								<SelectItem key={dept} value={dept}>
-									{dept}
-								</SelectItem>
-							)
-						)}
-					</SelectContent>
-				</Select>
-				<Input
-					placeholder="Search requests"
-					value={searchTerm}
-					onChange={(e) => setSearchTerm(e.target.value)}
-					className="max-w-sm"
+				<StatsCard
+					title="Total Requests"
+					value={totalRequests}
+					icon={<Database className="h-4 w-4 text-muted-foreground" />}
+					description="All time requests"
+					trend={{ value: 12, color: "text-green-600" }}
+				/>
+				<StatsCard
+					title="Approved"
+					value={approvedRequests}
+					icon={<CheckCircle className="h-4 w-4 text-green-500" />}
+					description="Successfully approved"
+					trend={{ value: 8, color: "text-green-600" }}
+				/>
+				<StatsCard
+					title="Rejected"
+					value={rejectedRequests}
+					icon={<XCircle className="h-4 w-4 text-red-500" />}
+					description="Denied requests"
+					trend={{ value: -5, color: "text-red-600" }}
+				/>
+				<StatsCard
+					title="Pending"
+					value={pendingRequests}
+					icon={<Clock className="h-4 w-4 text-yellow-500" />}
+					description="Awaiting approval"
+					trend={{ value: 3, color: "text-green-600" }}
 				/>
 			</div>
 
-			<DataTable columns={columns} data={filteredRequests} />
+			<Card>
+				<CardHeader>
+					<div className="flex items-center justify-between">
+						<CardTitle>Request Management</CardTitle>
+						<Tabs defaultValue={filterStatus} onValueChange={setFilterStatus}>
+							<TabsList>
+								<TabsTrigger value="all">All</TabsTrigger>
+								<TabsTrigger value="Pending">Pending</TabsTrigger>
+								<TabsTrigger value="Approved">Approved</TabsTrigger>
+								<TabsTrigger value="Rejected">Rejected</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</div>
+				</CardHeader>
+				<CardContent>
+					<div className="space-y-4">
+						<Card className="bg-muted/50">
+							<CardContent className="p-4">
+								<div className="flex flex-wrap gap-4 items-center">
+									<div className="flex-1 min-w-[200px] relative">
+										<Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="Search by email, name, or department"
+											value={searchTerm}
+											onChange={(e) => setSearchTerm(e.target.value)}
+											className="pl-9 w-full"
+										/>
+									</div>
+									<div className="flex items-center gap-2">
+										<Select
+											value={departmentFilter}
+											onValueChange={setDepartmentFilter}
+										>
+											<SelectTrigger className="w-[180px]">
+												<SelectValue placeholder="Department" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">All Departments</SelectItem>
+												{Array.from(
+													new Set(requests.map((r) => r.department))
+												).map((dept) => (
+													<SelectItem key={dept} value={dept}>
+														{dept}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<Select
+											value={sortBy}
+											onValueChange={(value) =>
+												setSortBy(value as keyof Request)
+											}
+										>
+											<SelectTrigger className="w-[180px]">
+												<SelectValue placeholder="Sort by" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="createdAt">Date</SelectItem>
+												<SelectItem value="department">Department</SelectItem>
+												<SelectItem value="status">Status</SelectItem>
+											</SelectContent>
+										</Select>
+										<Button variant="outline" size="icon">
+											<Filter className="h-4 w-4" />
+										</Button>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+
+						<div className="rounded-md border">
+							<DataTable
+								columns={columns}
+								data={filteredRequests}
+								pageSize={10}
+								enableSorting={true}
+							/>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
 
 			<ApprovalDialog
 				isOpen={isApprovalDialogOpen}
