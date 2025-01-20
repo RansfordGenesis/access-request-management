@@ -233,7 +233,9 @@ export function UserAccessDashboard() {
 	);
 
 	if (isLoading) {
-		return <div>Loading...</div>;
+		return (
+			<div className="flex justify-center items-center h-full">Loading...</div>
+		);
 	}
 
 	return (
