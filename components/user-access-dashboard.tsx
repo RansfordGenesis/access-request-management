@@ -15,6 +15,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SearchIcon, Download, FileDown, Filter } from "lucide-react";
 
 interface UserAccess {
 	Email: string;
@@ -234,57 +236,106 @@ export function UserAccessDashboard() {
 
 	if (isLoading) {
 		return (
-			<div className="flex justify-center items-center h-full">Loading...</div>
+			<div className="space-y-6">
+				<Card>
+					<CardHeader>
+						<Skeleton className="h-8 w-[200px]" />
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								{[1, 2, 3].map((i) => (
+									<Skeleton key={i} className="h-10" />
+								))}
+							</div>
+							<Skeleton className="h-[400px]" />
+						</div>
+					</CardContent>
+				</Card>
+			</div>
 		);
 	}
 
 	return (
 		<div className="space-y-6">
+			<div className="flex justify-between items-center">
+				<div>
+					<h1 className="text-3xl font-bold">User Access Management</h1>
+					<p className="text-muted-foreground mt-1">
+						View and manage user access across all systems
+					</p>
+				</div>
+				<div className="flex gap-2">
+					<Button onClick={() => generateReport("csv")} variant="outline">
+						<FileDown className="mr-2 h-4 w-4" />
+						CSV
+					</Button>
+					<Button onClick={() => generateReport("pdf")}>
+						<Download className="mr-2 h-4 w-4" />
+						PDF
+					</Button>
+				</div>
+			</div>
+
 			<Card>
 				<CardHeader>
-					<CardTitle>Filters</CardTitle>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<Input
-							placeholder="Filter by email"
-							value={emailFilter}
-							onChange={(e) => setEmailFilter(e.target.value)}
-						/>
-						<Input
-							placeholder="Filter by name"
-							value={nameFilter}
-							onChange={(e) => setNameFilter(e.target.value)}
-						/>
-						<Select
-							value={departmentFilter}
-							onValueChange={setDepartmentFilter}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Filter by department" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value={ALL_DEPARTMENTS}>All Departments</SelectItem>
-								{departments.map((dept) => (
-									<SelectItem key={dept} value={dept}>
-										{dept}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+					<div className="flex items-center justify-between">
+						<CardTitle>Access Overview</CardTitle>
+						<p className="text-sm text-muted-foreground">
+							Total Users: {userAccesses.length}
+						</p>
 					</div>
-					<div className="flex space-x-4">
-						<Button onClick={() => generateReport("csv")}>Download CSV</Button>
-						<Button onClick={() => generateReport("pdf")}>Download PDF</Button>
-					</div>
-				</CardContent>
-			</Card>
-			<Card>
-				<CardHeader>
-					<CardTitle>User Access Table</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<DataTable columns={columns} data={filteredAccesses} />
+					<div className="space-y-4">
+						<Card className="bg-muted/50">
+							<CardContent className="p-4">
+								<div className="flex flex-wrap gap-4 items-center">
+									<div className="flex-1 min-w-[200px] relative">
+										<SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="Search by email or name"
+											value={emailFilter}
+											onChange={(e) => setEmailFilter(e.target.value)}
+											className="pl-9"
+										/>
+									</div>
+									<div className="flex gap-2">
+										<Select
+											value={departmentFilter}
+											onValueChange={setDepartmentFilter}
+										>
+											<SelectTrigger className="w-[180px]">
+												<SelectValue placeholder="Department" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value={ALL_DEPARTMENTS}>
+													All Departments
+												</SelectItem>
+												{departments.map((dept) => (
+													<SelectItem key={dept} value={dept}>
+														{dept}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<Button variant="outline" size="icon">
+											<Filter className="h-4 w-4" />
+										</Button>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+
+						<div className="rounded-md border">
+							<DataTable
+								columns={columns}
+								data={filteredAccesses}
+								pageSize={10}
+								enableSorting={true}
+							/>
+						</div>
+					</div>
 				</CardContent>
 			</Card>
 		</div>
