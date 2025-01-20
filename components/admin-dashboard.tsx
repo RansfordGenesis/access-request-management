@@ -417,7 +417,7 @@ export function AdminDashboard({
 		if (!request) return null;
 
 		const renderAccessList = (title: string, items?: string[]) => {
-			if (!items || items.length === 0) return null;
+			if (!items?.length) return null;
 			return (
 				<div className="space-y-2">
 					<h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
@@ -425,9 +425,9 @@ export function AdminDashboard({
 						{items.map((item) => (
 							<div
 								key={item}
-								className="flex items-center text-sm bg-muted/50 p-2 rounded-md"
+								className="flex items-center text-sm bg-muted/50 p-2 rounded-md break-all"
 							>
-								<span className="h-1.5 w-1.5 rounded-full bg-primary mr-2" />
+								<span className="h-1.5 w-1.5 rounded-full bg-primary mr-2 shrink-0" />
 								{item}
 							</div>
 						))}
@@ -441,6 +441,15 @@ export function AdminDashboard({
 			Rejected: "bg-red-100 text-red-800",
 			Pending: "bg-yellow-100 text-yellow-800",
 		};
+
+		// Filter out empty sections first
+		const sections = [
+			{ title: "Main AWS Accounts", data: request.mainAws },
+			{ title: "Gov AWS Accounts", data: request.govAws },
+			{ title: "Graylog Access", data: request.graylog },
+			{ title: "ES/Kibana Access", data: request.esKibana },
+			{ title: "Other Access", data: request.otherAccess },
+		].filter((section) => section.data && section.data.length > 0);
 
 		return (
 			<Dialog open={isOpen} onOpenChange={onClose}>
@@ -531,17 +540,16 @@ export function AdminDashboard({
 							<CardTitle className="text-base">Requested Access</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<ScrollArea className="h-[200px] pr-4">
-								<div className="space-y-6">
-									{renderAccessList("Main AWS Accounts", request.mainAws)}
-									{request.govAws && <Separator className="my-4" />}
-									{renderAccessList("Gov AWS Accounts", request.govAws)}
-									{request.graylog && <Separator className="my-4" />}
-									{renderAccessList("Graylog Access", request.graylog)}
-									{request.esKibana && <Separator className="my-4" />}
-									{renderAccessList("ES/Kibana Access", request.esKibana)}
-									{request.otherAccess && <Separator className="my-4" />}
-									{renderAccessList("Other Access", request.otherAccess)}
+							<ScrollArea className="h-[200px]">
+								<div className="space-y-6 pr-4">
+									{sections.map((section, index) => (
+										<div key={section.title}>
+											{renderAccessList(section.title, section.data)}
+											{index < sections.length - 1 && (
+												<Separator className="my-4" />
+											)}
+										</div>
+									))}
 								</div>
 							</ScrollArea>
 						</CardContent>
