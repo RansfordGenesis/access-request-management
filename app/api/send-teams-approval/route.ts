@@ -4,9 +4,9 @@ import { TokenCredentialAuthenticationProvider } from "@microsoft/microsoft-grap
 import { ClientSecretCredential } from "@azure/identity";
 
 const credential = new ClientSecretCredential(
-  process.env.AZURE_TENANT_ID!,
-  process.env.AZURE_CLIENT_ID!,
-  process.env.AZURE_CLIENT_SECRET!
+  process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID!,
+  process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID!,
+  process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_SECRET!
 );
 
 const authProvider = new TokenCredentialAuthenticationProvider(credential, {
