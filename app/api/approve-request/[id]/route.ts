@@ -1,15 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { dbClient } from '@/lib/db'
-import mg from '@/lib/mailgun'
+import { NextRequest, NextResponse } from 'next/server';
+import { dbClient } from '@/lib/db';
+import mg from '@/lib/mailgun';
 import { sendTeamsNotification } from '@/lib/teamsNotification';
 import { AccessRequest } from '@/types';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    const id = params.id;
+    // Extracting ID from the request URL
+    const id = request.nextUrl.pathname.split('/').pop();
     
     if (!id) {
       return NextResponse.json({ error: 'Invalid request ID' }, { status: 400 });
@@ -68,11 +66,12 @@ export async function POST(
         </ul>
         <p>If you have any questions, please contact the IT department.</p>
       `;
+
       await mg.messages.create(process.env.MAILGUN_DOMAIN!, {
         from: process.env.MAILGUN_FROM_EMAIL,
         to: updatedItem.email,
         subject: `Access Request Approved: ${updatedItem.id}`,
-        html: emailHtml
+        html: emailHtml,
       });
 
       // Send Teams notification
@@ -82,7 +81,6 @@ export async function POST(
     } else {
       throw new Error('Failed to update request');
     }
-
   } catch (error) {
     console.error('Error approving request:', error);
     return NextResponse.json({ error: 'Failed to approve request' }, { status: 500 });
